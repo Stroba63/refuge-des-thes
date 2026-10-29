@@ -339,7 +339,7 @@
     <div class="dock-panel">
       <div class="dock-header">
         <span>🌱 Toucher un carré de terre 3D pour planter/récolter :</span>
-        <span id="ui-version">v2.3.0</span>
+        <span id="ui-version">v2.4.0</span>
       </div>
       <div class="seeds-row" id="seeds-row"></div>
 
@@ -397,7 +397,7 @@
        1. CONFIGURATION ET TEXTES DU JEU
        ========================================================================= */
     const GAME_CONFIG = {
-      version: "v2.3.0",
+      version: "v2.4.0",
       grandGoalHearts: 50,
       grandGiftTitle: "Diplôme de Maître Herboriste 🏆",
       grandGiftMessage: "Félicitations ! Grâce à ton savoir-faire et tes récoltes, le Refuge des Thés est devenu l'adresse la plus réputée de la vallée. Tous les habitants de la forêt viennent goûter tes infusions artisanales !",
@@ -666,7 +666,7 @@
 
     // Caméra Orthographique Isométrique
     let aspect = window.innerWidth / window.innerHeight;
-    const viewSize = 15;
+    const viewSize = 16.5;
     const camera = new THREE.OrthographicCamera(
       -viewSize * aspect / 2, viewSize * aspect / 2,
       viewSize / 2, -viewSize / 2,
@@ -736,23 +736,23 @@
     waterMesh.position.y = -1.15;
     scene.add(waterMesh);
 
-    const islandBase = new THREE.Mesh(new THREE.CylinderGeometry(12.2, 10.4, 1.9, 18), matEarth);
+    const islandBase = new THREE.Mesh(new THREE.CylinderGeometry(13.2, 11.4, 1.9, 18), matEarth);
     islandBase.position.y = -0.95;
     scene.add(islandBase);
 
-    const sandShore = new THREE.Mesh(new THREE.CylinderGeometry(12.5, 12.1, 0.45, 18), matSand);
+    const sandShore = new THREE.Mesh(new THREE.CylinderGeometry(13.6, 13.2, 0.45, 18), matSand);
     sandShore.position.y = -0.22;
     sandShore.receiveShadow = true;
     scene.add(sandShore);
 
-    const islandTop = new THREE.Mesh(new THREE.CylinderGeometry(11.6, 11.9, 0.5, 18), matGrass);
+    const islandTop = new THREE.Mesh(new THREE.CylinderGeometry(12.6, 12.9, 0.5, 18), matGrass);
     islandTop.position.y = -0.14;
     islandTop.receiveShadow = true;
     scene.add(islandTop);
 
-    // Colline verdoyante en arrière-plan sous le moulin
-    const hillSub = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 5.2, 0.65, 12), matGrassHill);
-    hillSub.position.set(2.3, 0.22, -5.2);
+    // Colline verdoyante en arrière-plan sous le moulin (reculée et ajustée pour ne jamais déborder sur le potager)
+    const hillSub = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.75, 0.65, 12), matGrassHill);
+    hillSub.position.set(2.5, 0.22, -6.2);
     hillSub.receiveShadow = true;
     scene.add(hillSub);
 
@@ -988,9 +988,9 @@
     createTree(6.6, 3.9, 1.1, 0x40916c);
     createTree(-2.8, 6.2, 0.95, 0xffafcc); // Second petit cerisier au Sud
 
-    // Petits buissons et rochers décoratifs
+    // Petits buissons et rochers décoratifs (placés hors des zones de culture)
     const bushMat = new THREE.MeshLambertMaterial({ color: 0x386641 });
-    [[-4.8, -1.2, 0.5], [0.2, -3.5, 0.45], [5.8, -4.6, 0.55], [-4.5, 5.2, 0.48], [5.9, 1.2, 0.42]].forEach(([bx, bz, br]) => {
+    [[-4.8, -1.2, 0.5], [5.8, -4.6, 0.55], [-4.5, 5.8, 0.48], [6.2, -3.2, 0.44]].forEach(([bx, bz, br]) => {
       const bush = new THREE.Mesh(new THREE.DodecahedronGeometry(br), bushMat);
       bush.position.set(bx, 0.1 + br * 0.6, bz);
       bush.castShadow = true;
@@ -999,7 +999,7 @@
 
     // 4.3b Moulin à vent Hay Day sur la colline (axe déporté & incliné sans collision)
     const windmillGroup = new THREE.Group();
-    windmillGroup.position.set(2.3, 0.54, -5.0); // Posé au sommet de la colline !
+    windmillGroup.position.set(2.5, 0.54, -6.2); // Posé au sommet de la colline reculée !
     windmillGroup.rotation.y = Math.PI / 7;
 
     const millBase = new THREE.Mesh(
@@ -1480,6 +1480,202 @@
       });
     }
 
+    // 4.6 Bâtiments de Récolte & Puits 3D (Étape 2 : Ruche à Miel, Buissons à Baies, Puits d'Arrosage)
+    const specialStations = {};
+
+    function createStationLabel(id, text) {
+      const el = document.createElement('div');
+      el.className = 'world-label';
+      el.style.cursor = 'pointer';
+      el.innerHTML = `<div class="plot-tag" id="station-tag-${id}" style="pointer-events:auto;">${text}</div>`;
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        interactWithStation(id, e.clientX, e.clientY);
+      });
+      plotLabelsContainer.appendChild(el);
+      return el;
+    }
+
+    // A) 🐝 La Ruche d'Abeilles 3D (Produit du Miel automatiquement)
+    const hiveGroup = new THREE.Group();
+    hiveGroup.position.set(7.3, 0.1, 0.8);
+
+    const hiveTable = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.14, 1.3), matWoodDark);
+    hiveTable.position.y = 0.42;
+    hiveTable.castShadow = true;
+    hiveGroup.add(hiveTable);
+    [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]].forEach(([lx, lz]) => {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.42, 6), matWoodDark);
+      leg.position.set(lx, 0.21, lz);
+      hiveGroup.add(leg);
+    });
+
+    const hiveGoldMat = new THREE.MeshLambertMaterial({ color: 0xf4b942 });
+    const hiveCreamMat = new THREE.MeshLambertMaterial({ color: 0xfaedcd });
+    [0.65, 0.95, 1.25].forEach((hy, i) => {
+      const tier = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.52 - i * 0.06, 0.56 - i * 0.05, 0.28, 10),
+        i % 2 === 0 ? hiveGoldMat : hiveCreamMat
+      );
+      tier.position.y = hy;
+      tier.castShadow = true;
+      hiveGroup.add(tier);
+    });
+
+    const hiveRoof = new THREE.Mesh(new THREE.ConeGeometry(0.62, 0.45, 10), matWood);
+    hiveRoof.position.y = 1.58;
+    hiveRoof.castShadow = true;
+    hiveGroup.add(hiveRoof);
+
+    const hiveHole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.11, 0.11, 0.1, 8),
+      new THREE.MeshBasicMaterial({ color: 0x2b1d0e })
+    );
+    hiveHole.rotation.x = Math.PI / 2;
+    hiveHole.position.set(0, 0.68, 0.52);
+    hiveGroup.add(hiveHole);
+
+    const hiveHit = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.0, 1.0, 2.0, 8),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    hiveHit.position.y = 1.0;
+    hiveHit.userData = { type: 'station', stationId: 'hive' };
+    hiveGroup.add(hiveHit);
+    scene.add(hiveGroup);
+
+    // 3 petites abeilles 3D qui butinent autour de la ruche
+    const bees = [];
+    const beeWingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
+    for (let b = 0; b < 3; b++) {
+      const bee = new THREE.Group();
+      const bBody = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), hiveGoldMat);
+      bBody.scale.set(1, 0.8, 1.3);
+      bee.add(bBody);
+      const bStripe = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.085, 0.085, 0.06, 8),
+        new THREE.MeshBasicMaterial({ color: 0x222222 })
+      );
+      bStripe.rotation.x = Math.PI / 2;
+      bee.add(bStripe);
+      const wingL = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), beeWingMat);
+      wingL.scale.set(1.2, 0.2, 0.7);
+      wingL.position.set(-0.08, 0.07, 0);
+      const wingR = wingL.clone();
+      wingR.position.x = 0.08;
+      bee.add(wingL, wingR);
+      scene.add(bee);
+      bees.push({ group: bee, phase: b * 2.1, radius: 0.95 + b * 0.22 });
+    }
+
+    specialStations.hive = {
+      id: 'hive',
+      group: hiveGroup,
+      labelPos: new THREE.Vector3(7.3, 2.1, 0.8),
+      labelEl: createStationLabel('hive', '🐝 Ruche'),
+      readyAt: Date.now() + 5000,
+      cooldown: 9000
+    };
+
+    // B) 🫐 Le Bosquet de Buissons à Baies Sauvages 3D (Sud-Ouest)
+    const berryStationGroup = new THREE.Group();
+    berryStationGroup.position.set(-3.8, 0.1, 3.9);
+    const berryFoliageMat = new THREE.MeshLambertMaterial({ color: 0x2d6a4f });
+    const berryFruitMat = new THREE.MeshLambertMaterial({ color: 0x7b2cbf });
+    const berryFruitMeshes = [];
+
+    [[-0.55, 0, 0.62], [0.55, 0.1, 0.58], [0, -0.45, 0.54]].forEach(([bx, bz, br]) => {
+      const bMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(br), berryFoliageMat);
+      bMesh.position.set(bx, br * 0.75, bz);
+      bMesh.castShadow = true;
+      berryStationGroup.add(bMesh);
+
+      for (let f = 0; f < 4; f++) {
+        const ang = (f * Math.PI) / 2 + 0.4;
+        const fruit = new THREE.Mesh(new THREE.SphereGeometry(0.11, 7, 7), berryFruitMat);
+        fruit.position.set(
+          bx + Math.cos(ang) * (br * 0.78),
+          br * 0.85 + (f % 2) * 0.14,
+          bz + Math.sin(ang) * (br * 0.78)
+        );
+        berryStationGroup.add(fruit);
+        berryFruitMeshes.push(fruit);
+      }
+    });
+
+    const berryHit = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.3, 1.3, 1.6, 8),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    berryHit.position.y = 0.8;
+    berryHit.userData = { type: 'station', stationId: 'berries' };
+    berryStationGroup.add(berryHit);
+    scene.add(berryStationGroup);
+
+    specialStations.berries = {
+      id: 'berries',
+      group: berryStationGroup,
+      labelPos: new THREE.Vector3(-3.8, 1.65, 3.9),
+      labelEl: createStationLabel('berries', '🫐 Buissons'),
+      readyAt: Date.now() + 4000,
+      cooldown: 8000
+    };
+
+    // C) 🪣 Le Puits en Pierre 3D (Arrose tout le potager d'un coup !)
+    const wellGroup = new THREE.Group();
+    wellGroup.position.set(-0.3, 0.1, -3.1);
+
+    const wellWall = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.78, 0.75, 12), matStone);
+    wellWall.position.y = 0.38;
+    wellWall.castShadow = true;
+    wellWall.receiveShadow = true;
+    wellGroup.add(wellWall);
+
+    const wellWater = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.58, 0.58, 0.08, 12),
+      new THREE.MeshBasicMaterial({ color: 0x0096c7 })
+    );
+    wellWater.position.y = 0.65;
+    wellGroup.add(wellWater);
+
+    [-0.58, 0.58].forEach((px) => {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 1.35, 7), matWoodDark);
+      post.position.set(px, 1.05, 0);
+      post.castShadow = true;
+      wellGroup.add(post);
+    });
+
+    const wellRoof = new THREE.Mesh(
+      new THREE.ConeGeometry(0.95, 0.65, 4),
+      new THREE.MeshLambertMaterial({ color: 0xd95d39 })
+    );
+    wellRoof.position.y = 1.95;
+    wellRoof.rotation.y = Math.PI / 4;
+    wellRoof.castShadow = true;
+    wellGroup.add(wellRoof);
+
+    const wellBucket = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.13, 0.26, 8), matWood);
+    wellBucket.position.set(0, 1.15, 0);
+    wellGroup.add(wellBucket);
+
+    const wellHit = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.0, 1.0, 2.3, 8),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    wellHit.position.y = 1.1;
+    wellHit.userData = { type: 'station', stationId: 'well' };
+    wellGroup.add(wellHit);
+    scene.add(wellGroup);
+
+    specialStations.well = {
+      id: 'well',
+      group: wellGroup,
+      labelPos: new THREE.Vector3(-0.3, 2.35, -3.1),
+      labelEl: createStationLabel('well', '🪣 Puits'),
+      readyAt: Date.now() + 2000,
+      cooldown: 10000
+    };
+
     /* =========================================================================
        5. INTERACTIONS TACTILES & SOURIS SUR LA 3D (RAYCASTER + ROTATION CAMÉRA)
        ========================================================================= */
@@ -1536,9 +1732,61 @@
           interactWithPlot(data.plotIndex, clientX, clientY);
           return;
         }
+        if (data && data.type === 'station') {
+          interactWithStation(data.stationId, clientX, clientY);
+          return;
+        }
         if (data && data.type === 'client') {
           serveTea();
           return;
+        }
+      }
+    }
+
+    function interactWithStation(stationId, screenX, screenY) {
+      const st = specialStations[stationId];
+      if (!st) return;
+      const now = Date.now();
+      if (now < st.readyAt) {
+        sfxClick();
+        const rem = Math.ceil((st.readyAt - now) / 1000);
+        spawnFloatingText(`⏳ Encore ${rem}s`, screenX, screenY, '#8c7b6b');
+        return;
+      }
+
+      if (stationId === 'hive') {
+        sfxHarvest();
+        state.inventory.miel = (state.inventory.miel || 0) + 2;
+        st.readyAt = now + st.cooldown;
+        spawnFloatingText('+2 🍯 Miel de la ruche !', screenX, screenY, '#f4b942');
+        saveGame();
+        renderDock();
+      } else if (stationId === 'berries') {
+        sfxHarvest();
+        state.inventory.baies = (state.inventory.baies || 0) + 2;
+        st.readyAt = now + st.cooldown;
+        spawnFloatingText('+2 🫐 Baies sauvages !', screenX, screenY, '#7b2cbf');
+        saveGame();
+        renderDock();
+      } else if (stationId === 'well') {
+        sfxSuccess();
+        st.readyAt = now + st.cooldown;
+        let watered = 0;
+        plotsData.forEach(p => {
+          if (p.state === 'growing') {
+            p.plantedAt -= (p.duration * 1000) * 0.5;
+            watered++;
+          }
+        });
+        spawnFloatingText(
+          watered > 0 ? '🌧️ Potager arrosé (+50% vitesse) !' : '🪣 Eau fraîche puisée (+5 🪙) !',
+          screenX,
+          screenY,
+          '#0096c7'
+        );
+        if (watered === 0) {
+          state.coins += 5;
+          saveGame();
         }
       }
     }
@@ -1849,6 +2097,43 @@
             tagEl.className = 'plot-tag';
             tagEl.innerText = `${ing.icon} ${rem}s`;
           }
+        }
+      });
+
+      // Animation des abeilles autour de la ruche & mise à jour des stations 3D (Ruche, Buissons, Puits)
+      bees.forEach((b, i) => {
+        const ang = elapsed * 2.6 + b.phase;
+        b.group.position.set(
+          7.3 + Math.cos(ang) * b.radius,
+          1.15 + Math.sin(elapsed * 5 + i) * 0.22,
+          0.8 + Math.sin(ang) * b.radius
+        );
+        b.group.rotation.y = -ang;
+      });
+
+      const berriesReady = now >= specialStations.berries.readyAt;
+      berryFruitMeshes.forEach((fm, idx) => {
+        fm.scale.setScalar(berriesReady ? 1 + Math.sin(elapsed * 5 + idx) * 0.15 : 0.35);
+      });
+
+      wellBucket.position.y = 1.12 + Math.sin(elapsed * 2.2) * 0.1;
+
+      Object.values(specialStations).forEach(st => {
+        const sPos = toScreenPosition(st.labelPos);
+        st.labelEl.style.left = `${sPos.x}px`;
+        st.labelEl.style.top = `${sPos.y}px`;
+        const tag = document.getElementById(`station-tag-${st.id}`);
+        if (now >= st.readyAt) {
+          tag.className = 'plot-tag ready';
+          if (st.id === 'hive') tag.innerText = '🍯 Récolter miel !';
+          else if (st.id === 'berries') tag.innerText = '🫐 Cueillir baies !';
+          else if (st.id === 'well') tag.innerText = '🪣 Arroser potager !';
+        } else {
+          const rem = Math.ceil((st.readyAt - now) / 1000);
+          tag.className = 'plot-tag';
+          if (st.id === 'hive') tag.innerText = `🐝 Miel ${rem}s`;
+          else if (st.id === 'berries') tag.innerText = `🫐 Baies ${rem}s`;
+          else if (st.id === 'well') tag.innerText = `🪣 Puits ${rem}s`;
         }
       });
 
