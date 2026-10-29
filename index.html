@@ -355,7 +355,7 @@
 
   <!-- BARRE DU HAUT -->
   <div class="hud-top">
-    <div class="hud-group">
+    <div class="hud-group" style="flex-wrap:wrap;">
       <div class="pill" title="Niveau d'Herboriste & Expérience (XP)">
         <span id="ui-sun-icon">☀️</span>
         <span>Niv. <span id="ui-level">1</span></span>
@@ -364,8 +364,16 @@
       </div>
       <div class="pill">🪙 <span id="ui-coins">0</span></div>
       <div class="pill">⭐ <span id="ui-hearts">0</span></div>
+      <div class="pill" id="ui-weather-pill" title="Météo actuelle sur l'île" style="font-size:0.84rem; padding:5px 11px;">
+        <span id="ui-weather-icon">☀️</span>
+        <span id="ui-weather-label">Temps clair</span>
+      </div>
     </div>
     <div class="hud-group">
+      <button class="icon-btn" onclick="openOrdersModal()" title="Tableau des Commandes de la Vallée">
+        📋
+        <span class="badge-dot" id="orders-dot"></span>
+      </button>
       <button class="icon-btn" onclick="openShopModal()" title="Boutique d'améliorations 3D">
         🛒
         <span class="badge-dot" id="shop-dot"></span>
@@ -397,6 +405,16 @@
         <button class="btn-add-cup" onclick="addSelectedToCup(event)">+ Mettre dans la tasse</button>
         <button class="btn-serve" onclick="serveTea()">Servir 🍵</button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODALE TABLEAU DES COMMANDES DE LA VALLÉE (FAÇON HAY DAY) -->
+  <div class="modal-overlay" id="modal-orders">
+    <div class="modal-box" style="max-width:410px;">
+      <h2 style="color:var(--green-dark); margin-bottom:4px;">📋 Tableau des Commandes</h2>
+      <p style="font-size:0.8rem; color:#7d6b5d; margin-bottom:12px;">Livre les récoltes demandées par les auberges et villages voisins pour gagner de grosses récompenses !</p>
+      <div id="orders-list"></div>
+      <button class="btn-serve" style="width:100%; margin-top:8px;" onclick="closeModal('modal-orders')">Retour à la ferme 🌻</button>
     </div>
   </div>
 
@@ -452,19 +470,28 @@
        1. CONFIGURATION ET TEXTES DU JEU
        ========================================================================= */
     const GAME_CONFIG = {
-      version: "v2.6.0",
+      version: "v2.7.0",
       grandGoalHearts: 80,
       grandGiftTitle: "Diplôme de Maître Herboriste 🏆",
       grandGiftMessage: "Félicitations ! Grâce à ton savoir-faire et tes récoltes, le Refuge des Thés est devenu l'adresse la plus réputée de la vallée. Tous les habitants de la forêt viennent goûter tes infusions artisanales !",
       
       ingredients: {
-        camomille: { id: "camomille", name: "Camomille", icon: "🌼", growTime: 22, minLevel: 1, color: 0xf4d35e },
-        menthe:    { id: "menthe",    name: "Menthe",    icon: "🍃", growTime: 28, minLevel: 1, color: 0x52b788 },
-        baies:     { id: "baies",     name: "Baies",     icon: "🫐", growTime: 34, minLevel: 1, color: 0x7b2cbf },
-        miel:      { id: "miel",      name: "Miel",      icon: "🍯", growTime: 40, minLevel: 1, color: 0xf4a261 },
-        lavande:   { id: "lavande",   name: "Lavande",   icon: "💜", growTime: 36, minLevel: 2, color: 0x9d4edd },
-        citron:    { id: "citron",    name: "Citron",    icon: "🍋", growTime: 45, minLevel: 3, color: 0xffea00 }
+        camomille: { id: "camomille", name: "Camomille", icon: "🌼", growTime: 22, seedCost: 1, minLevel: 1, color: 0xf4d35e },
+        menthe:    { id: "menthe",    name: "Menthe",    icon: "🍃", growTime: 28, seedCost: 1, minLevel: 1, color: 0x52b788 },
+        baies:     { id: "baies",     name: "Baies",     icon: "🫐", growTime: 34, seedCost: 2, minLevel: 1, color: 0x7b2cbf },
+        miel:      { id: "miel",      name: "Miel",      icon: "🍯", growTime: 40, seedCost: 3, minLevel: 1, color: 0xf4a261 },
+        lavande:   { id: "lavande",   name: "Lavande",   icon: "💜", growTime: 36, seedCost: 2, minLevel: 2, color: 0x9d4edd },
+        citron:    { id: "citron",    name: "Citron",    icon: "🍋", growTime: 45, seedCost: 3, minLevel: 3, color: 0xffea00 }
       },
+
+      orderClients: [
+        { name: "Auberge du Vieux Moulin", icon: "🏡" },
+        { name: "Herboristerie du Village", icon: "🌿" },
+        { name: "Boulangerie des Chênes", icon: "🥖" },
+        { name: "Marché de la Clairière", icon: "🧺" },
+        { name: "Refuge des Montagnes", icon: "⛰️" },
+        { name: "Observatoire Étoilé", icon: "🔭" }
+      ],
 
       shopUpgrades: [
         {
@@ -766,6 +793,7 @@
       if ((GAME_CONFIG.animals[data.currentAnimalIndex].minLevel || 1) > data.level) {
         data.currentAnimalIndex = 0;
       }
+      if (!Array.isArray(data.orders)) data.orders = [];
       return data;
     }
 
@@ -1378,6 +1406,85 @@
         lastSunIcon = kfA.icon;
         const iconEl = document.getElementById('ui-sun-icon');
         if (iconEl) iconEl.innerText = lastSunIcon;
+      }
+    }
+
+    // 4.3b Météo Dynamique 3D (Pluie qui arrose seule, Canicule qui sèche vite, Grand Vent qui accélère le moulin)
+    const WEATHER_TYPES = [
+      { id: 'clear',    icon: '☀️', label: 'Temps clair', dryMult: 1.0, windMult: 1.0, growMult: 1.0 },
+      { id: 'rain',     icon: '🌧️', label: 'Pluie douce', dryMult: 0.0, windMult: 1.3, growMult: 1.2 },
+      { id: 'wind',     icon: '💨', label: 'Grand vent',  dryMult: 1.25, windMult: 2.6, growMult: 1.35 },
+      { id: 'heatwave', icon: '🔥', label: 'Canicule',    dryMult: 2.2, windMult: 0.7, growMult: 1.0 }
+    ];
+    let currentWeather = WEATHER_TYPES[0];
+    let weatherTimer = 38; // Change de météo toutes les 38 à 55 secondes
+
+    // Nuages de pluie 3D et gouttes de pluie 3D sur toute l'île
+    const rainCloudsGroup = new THREE.Group();
+    rainCloudsGroup.position.y = 8.8;
+    rainCloudsGroup.visible = false;
+    const rainCloudMat = new THREE.MeshLambertMaterial({ color: 0x8d99ae, transparent: true, opacity: 0.86 });
+    [[-3.5, -1.5, 1.3], [1.8, 0.8, 1.5], [4.2, -2.2, 1.15]].forEach(([cx, cz, sc]) => {
+      const cg = new THREE.Group();
+      cg.position.set(cx, 0, cz);
+      [[-0.8, 0, 0.9], [0, 0.25, 1.15], [0.85, 0.05, 0.85]].forEach(([bx, by, br]) => {
+        const puff = new THREE.Mesh(new THREE.DodecahedronGeometry(br), rainCloudMat);
+        puff.position.set(bx, by, 0);
+        cg.add(puff);
+      });
+      cg.scale.setScalar(sc);
+      rainCloudsGroup.add(cg);
+    });
+    scene.add(rainCloudsGroup);
+
+    const rainDrops = [];
+    const rainDropMat = new THREE.MeshBasicMaterial({ color: 0x48cae4, transparent: true, opacity: 0.78 });
+    for (let r = 0; r < 60; r++) {
+      const drop = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.42, 0.035), rainDropMat);
+      drop.position.set((Math.random() - 0.5) * 18, Math.random() * 9, (Math.random() - 0.5) * 16);
+      drop.rotation.z = 0.15;
+      drop.visible = false;
+      scene.add(drop);
+      rainDrops.push({ mesh: drop, speed: 9.5 + Math.random() * 4 });
+    }
+
+    function setWeather(wType) {
+      currentWeather = wType;
+      const wIconEl = document.getElementById('ui-weather-icon');
+      const wLabelEl = document.getElementById('ui-weather-label');
+      if (wIconEl) wIconEl.innerText = wType.icon;
+      if (wLabelEl) wLabelEl.innerText = wType.label;
+
+      const isRain = wType.id === 'rain';
+      rainCloudsGroup.visible = isRain;
+      rainDrops.forEach(d => { d.mesh.visible = isRain; });
+
+      let msg = `${wType.icon} Météo : ${wType.label}`;
+      if (wType.id === 'rain') msg = '🌧️ Averse sur la ferme : le potager s\'arrose tout seul !';
+      else if (wType.id === 'heatwave') msg = '🔥 Canicule : attention, la terre sèche 2x plus vite !';
+      else if (wType.id === 'wind') msg = '💨 Grand vent : le moulin et les cultures vont +35% plus vite !';
+      spawnFloatingText(msg, Math.max(20, window.innerWidth / 2 - 140), 75, '#0077b6');
+    }
+
+    function updateWeather(dt, elapsedSec) {
+      weatherTimer -= dt;
+      if (weatherTimer <= 0) {
+        weatherTimer = 42 + Math.random() * 20;
+        const options = WEATHER_TYPES.filter(w => w.id !== currentWeather.id);
+        const nextW = options[Math.floor(Math.random() * options.length)];
+        setWeather(nextW);
+      }
+
+      if (currentWeather.id === 'rain') {
+        rainCloudsGroup.position.x = Math.sin(elapsedSec * 0.35) * 1.4;
+        rainDrops.forEach(d => {
+          d.mesh.position.y -= d.speed * dt;
+          d.mesh.position.x -= 1.2 * dt;
+          if (d.mesh.position.y < 0.1) {
+            d.mesh.position.y = 8.5 + Math.random() * 1.5;
+            d.mesh.position.x = (Math.random() - 0.5) * 18;
+          }
+        });
       }
     }
 
@@ -2033,6 +2140,60 @@
     royalHiveGroup.visible = !!(state.upgrades && state.upgrades.royalHive);
     scene.add(royalHiveGroup);
 
+    // G) 📋 Le Tableau de Commandes 3D en Bois (Près du Ponton d'Accueil, façon Hay Day !)
+    const orderBoardGroup = new THREE.Group();
+    orderBoardGroup.position.set(-4.9, 0.1, -0.2);
+    orderBoardGroup.rotation.y = Math.PI / 5;
+
+    [-0.65, 0.65].forEach((px) => {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 1.55, 7), matWoodDark);
+      post.position.set(px, 0.77, 0);
+      post.castShadow = true;
+      orderBoardGroup.add(post);
+    });
+
+    const boardPanel = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.9, 0.12), matWood);
+    boardPanel.position.set(0, 1.12, 0);
+    boardPanel.castShadow = true;
+    orderBoardGroup.add(boardPanel);
+
+    const boardRoof = new THREE.Mesh(
+      new THREE.BoxGeometry(1.75, 0.14, 0.45),
+      new THREE.MeshLambertMaterial({ color: 0xd95d39 })
+    );
+    boardRoof.position.set(0, 1.62, 0.04);
+    boardRoof.rotation.x = 0.22;
+    boardRoof.castShadow = true;
+    orderBoardGroup.add(boardRoof);
+
+    // 3 petites feuilles de contrat épinglées sur le panneau 3D
+    const paperMat = new THREE.MeshBasicMaterial({ color: 0xfffdf7 });
+    [-0.42, 0, 0.42].forEach((nx, i) => {
+      const note = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.44, 0.03), paperMat);
+      note.position.set(nx, 1.12 + (i % 2) * 0.04, 0.07);
+      note.rotation.z = (i - 1) * 0.07;
+      orderBoardGroup.add(note);
+    });
+
+    const boardHit = new THREE.Mesh(
+      new THREE.BoxGeometry(1.8, 2.0, 1.0),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    boardHit.position.y = 1.0;
+    boardHit.userData = { type: 'orderBoard' };
+    orderBoardGroup.add(boardHit);
+    scene.add(orderBoardGroup);
+
+    const orderBoardLabelEl = document.createElement('div');
+    orderBoardLabelEl.className = 'world-label';
+    orderBoardLabelEl.style.cursor = 'pointer';
+    orderBoardLabelEl.innerHTML = `<div class="plot-tag ready" id="order-board-tag" style="pointer-events:auto;">📋 Commandes</div>`;
+    orderBoardLabelEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openOrdersModal();
+    });
+    plotLabelsContainer.appendChild(orderBoardLabelEl);
+
     /* =========================================================================
        5. INTERACTIONS TACTILES & SOURIS SUR LA 3D (RAYCASTER + ROTATION CAMÉRA)
        ========================================================================= */
@@ -2095,6 +2256,10 @@
         }
         if (data && data.type === 'client') {
           serveTea();
+          return;
+        }
+        if (data && data.type === 'orderBoard') {
+          openOrdersModal();
           return;
         }
         if (data && data.type === 'roamer') {
@@ -2180,6 +2345,14 @@
           spawnFloatingText(`🔒 Débloqué au Niveau ${ing.minLevel} !`, screenX - 60, screenY, '#e07a5f');
           return;
         }
+        const cost = ing.seedCost || 1;
+        let costMsg = `-${cost} 🪙`;
+        if (state.coins >= cost) {
+          state.coins -= cost;
+        } else {
+          // Si le joueur n'a plus assez de pièces, le village offre la graine de base pour ne jamais bloquer !
+          costMsg = 'Graine offerte 🎁';
+        }
         sfxPlant();
         const speedMult = (state.upgrades && state.upgrades.royalHive) ? 0.7 : 1;
         plot.state = 'growing';
@@ -2189,8 +2362,8 @@
         rebuildPlotPlant3D(plot);
         addXP(4);
         saveGame();
-        const dryHint = plot.moisture <= 0.08 ? ' (💧 Pense à arroser au puits !)' : ' (+4 XP)';
-        spawnFloatingText(`🌱 ${ing.name}${dryHint}`, screenX - 40, screenY, '#52b788');
+        const dryHint = plot.moisture <= 0.08 ? ' • 💧 Arrose au puits !' : ` • ${costMsg} +4 XP`;
+        spawnFloatingText(`🌱 ${ing.name}${dryHint}`, screenX - 55, screenY, '#52b788');
       } else if (plot.state === 'ready') {
         sfxHarvest();
         const ing = GAME_CONFIG.ingredients[plot.crop];
@@ -2266,7 +2439,102 @@
       return 0;
     }
 
+    function generateOrder() {
+      const lvl = getFarmLevel();
+      const unlockedIngs = Object.values(GAME_CONFIG.ingredients).filter(i => (i.minLevel || 1) <= lvl);
+      const sender = GAME_CONFIG.orderClients[Math.floor(Math.random() * GAME_CONFIG.orderClients.length)];
+      const numItems = (lvl >= 2 && Math.random() < 0.45) ? 3 : 2;
+      const reqs = {};
+      for (let i = 0; i < numItems; i++) {
+        const pick = unlockedIngs[Math.floor(Math.random() * unlockedIngs.length)].id;
+        reqs[pick] = (reqs[pick] || 0) + 1;
+      }
+      const totalCount = Object.values(reqs).reduce((a, b) => a + b, 0);
+      return {
+        id: 'ord_' + Math.random().toString(36).slice(2, 8),
+        senderName: sender.name,
+        senderIcon: sender.icon,
+        reqs: reqs,
+        coins: totalCount * 11 + Math.floor(Math.random() * 8),
+        xp: totalCount * 9,
+        hearts: 8
+      };
+    }
+
+    function ensureOrders() {
+      if (!Array.isArray(state.orders)) state.orders = [];
+      while (state.orders.length < 3) {
+        state.orders.push(generateOrder());
+      }
+    }
+
+    function canFulfillOrder(ord) {
+      return Object.entries(ord.reqs).every(([ingId, qty]) => (state.inventory[ingId] || 0) >= qty);
+    }
+
+    function openOrdersModal() {
+      sfxClick();
+      ensureOrders();
+      const listEl = document.getElementById('orders-list');
+      listEl.innerHTML = state.orders.map((ord, idx) => {
+        const ready = canFulfillOrder(ord);
+        const reqBadges = Object.entries(ord.reqs).map(([ingId, qty]) => {
+          const ing = GAME_CONFIG.ingredients[ingId];
+          const have = state.inventory[ingId] || 0;
+          const ok = have >= qty;
+          return `<span style="background:${ok ? '#e6f2e4' : '#f8ece9'}; border:1px solid ${ok ? '#52b788' : '#e07a5f'}; padding:2px 7px; border-radius:99px; font-size:0.76rem; font-weight:800; color:${ok ? '#2d6a4f' : '#b35237'};">${ing.icon} ${have}/${qty}</span>`;
+        }).join(' ');
+
+        return `
+          <div class="album-item" style="flex-direction:column; align-items:stretch; gap:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="font-weight:800; font-size:0.88rem; color:var(--wood-dark);">${ord.senderIcon} ${ord.senderName}</div>
+              <div style="font-size:0.75rem; font-weight:800; color:#c85a32;">+${ord.coins} 🪙 • +${ord.xp} XP • +${ord.hearts} ⭐</div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-top:2px;">
+              <div style="display:flex; flex-wrap:wrap; gap:4px;">${reqBadges}</div>
+              <div style="display:flex; gap:5px;">
+                <button class="btn-add-cup" style="background:#b08968; box-shadow:0 3px 0 #7d5a3c; padding:7px 9px;" title="Changer cette commande" onclick="rerollOrder(${idx})">🔄</button>
+                <button class="btn-add-cup" ${ready ? '' : 'disabled style="opacity:0.45;"'} onclick="deliverOrder(${idx})">Livrer 🚚</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      document.getElementById('modal-orders').style.display = 'flex';
+    }
+
+    function deliverOrder(idx) {
+      ensureOrders();
+      const ord = state.orders[idx];
+      if (!ord || !canFulfillOrder(ord)) {
+        sfxError();
+        return;
+      }
+      sfxSuccess();
+      Object.entries(ord.reqs).forEach(([ingId, qty]) => {
+        state.inventory[ingId] -= qty;
+      });
+      state.coins += ord.coins;
+      state.hearts += ord.hearts;
+      addXP(ord.xp);
+      state.orders[idx] = generateOrder();
+      saveGame();
+      renderDock();
+      openOrdersModal();
+      spawnFloatingText(`🚚 Livraison envoyée : +${ord.coins} 🪙 +${ord.xp} XP !`, window.innerWidth / 2 - 110, window.innerHeight / 3, '#52b788');
+    }
+
+    function rerollOrder(idx) {
+      sfxClick();
+      ensureOrders();
+      state.orders[idx] = generateOrder();
+      saveGame();
+      openOrdersModal();
+    }
+
     function updateHUD() {
+      ensureOrders();
       const lvl = getFarmLevel();
       const needed = getXpNeeded(lvl);
       const curXp = Math.min(needed, state.xp || 0);
@@ -2279,6 +2547,15 @@
       document.getElementById('ui-coins').innerText = state.coins;
       document.getElementById('ui-hearts').innerText = state.hearts;
       document.getElementById('ui-version').innerText = GAME_CONFIG.version;
+
+      const readyOrders = state.orders.filter(canFulfillOrder).length;
+      const ordersDot = document.getElementById('orders-dot');
+      if (ordersDot) ordersDot.style.display = readyOrders > 0 ? 'block' : 'none';
+      const boardTag = document.getElementById('order-board-tag');
+      if (boardTag) {
+        boardTag.innerText = readyOrders > 0 ? `📋 Commandes (${readyOrders} prête${readyOrders > 1 ? 's' : ''} !)` : '📋 Tableau Commandes';
+        boardTag.className = readyOrders > 0 ? 'plot-tag ready' : 'plot-tag';
+      }
 
       const canBuyAny = GAME_CONFIG.shopUpgrades.some(
         u => !(state.upgrades && state.upgrades[u.id]) && state.coins >= u.cost && lvl >= (u.minLevel || 1)
@@ -2373,8 +2650,9 @@
         return `
           <div class="seed-card ${selectedSeed === ing.id ? 'active' : ''} ${locked ? 'locked' : ''}" onclick="selectSeed('${ing.id}')">
             <span class="seed-stock">${locked ? `🔒N.${ing.minLevel}` : `x${count}`}</span>
-            <div style="font-size:1.35rem;">${ing.icon}</div>
-            <div style="font-size:0.72rem; font-weight:800;">${ing.name}</div>
+            <div style="font-size:1.3rem;">${ing.icon}</div>
+            <div style="font-size:0.7rem; font-weight:800;">${ing.name}</div>
+            <div style="font-size:0.62rem; color:#7d5a3c; font-weight:700;">🌱 ${ing.seedCost || 1}🪙</div>
           </div>
         `;
       }).join('');
@@ -2383,6 +2661,7 @@
         const slot = document.getElementById(`slot-${i}`);
         slot.innerText = currentCup[i] ? GAME_CONFIG.ingredients[currentCup[i]].icon : '';
       }
+      updateHUD();
     }
 
     function selectSeed(id) {
@@ -2545,14 +2824,16 @@
       const elapsed = clock.getElapsedTime();
       const now = Date.now();
 
-      // Oscillation douce des arbres et des fleurs + rotation du moulin Hay Day
+      // Météo dynamique 3D + Oscillation des arbres, fleurs & rotation du moulin selon le vent !
+      updateWeather(dt, elapsed);
+      const wMult = currentWeather.windMult || 1;
       trees.forEach((t, i) => {
-        t.rotation.z = Math.sin(elapsed * 1.6 + i) * 0.035;
+        t.rotation.z = Math.sin(elapsed * 1.6 * wMult + i) * (0.035 * wMult);
       });
       flowers.forEach((f, i) => {
-        f.rotation.z = Math.sin(elapsed * 2.2 + i * 0.7) * 0.06;
+        f.rotation.z = Math.sin(elapsed * 2.2 * wMult + i * 0.7) * (0.06 * wMult);
       });
-      windmillBlades.rotation.z -= dt * 1.45;
+      windmillBlades.rotation.z -= dt * 1.45 * wMult;
 
       // Fumée de la cheminée du salon de thé
       smokePuffs.forEach((sp) => {
@@ -2663,14 +2944,24 @@
       bubbleEl.style.top = `${bubblePos.y}px`;
       bubbleEl.style.opacity = animalWalkProgress >= 0.95 ? '1' : '0';
 
-      // Assèchement progressif du sol & Croissance 3D conditionnée par l'humidité !
+      // Position de l'étiquette 3D du Tableau de Commandes
+      const boardPos = toScreenPosition(new THREE.Vector3(-4.9, 2.0, -0.2));
+      orderBoardLabelEl.style.left = `${boardPos.x}px`;
+      orderBoardLabelEl.style.top = `${boardPos.y}px`;
+
+      // Assèchement progressif du sol (ou hydratation sous la pluie !) & Croissance 3D conditionnée par l'humidité !
       let anyPlotDry = false;
       plotsData.forEach(plot => {
         if (!plot.unlocked) return;
 
-        // Le sol sèche avec le temps (plus vite quand une plante boit l'eau)
-        const dryRate = (plot.state === 'growing') ? (1 / SOIL_DRY_TIME) : (1 / (SOIL_DRY_TIME * 1.6));
-        plot.moisture = Math.max(0, plot.moisture - dt * dryRate);
+        if (currentWeather.id === 'rain') {
+          // Sous la pluie, le potager s'arrose tout seul progressivement !
+          plot.moisture = Math.min(1, plot.moisture + dt * 0.14);
+        } else {
+          // Le sol sèche avec le temps (et 2.2x plus vite en cas de canicule !)
+          const baseDry = (plot.state === 'growing') ? (1 / SOIL_DRY_TIME) : (1 / (SOIL_DRY_TIME * 1.6));
+          plot.moisture = Math.max(0, plot.moisture - dt * baseDry * (currentWeather.dryMult || 1));
+        }
 
         // Interpolation visuelle de la couleur du sol : foncé quand mouillé, clair quand sec
         plot.soilMesh.material.color.copy(SOIL_DRY_COLOR).lerp(SOIL_WET_COLOR, plot.moisture);
@@ -2688,8 +2979,8 @@
 
           if (plot.state === 'growing') {
             if (plot.moisture > 0) {
-              // Le sol est humide : la plante pousse !
-              plot.wateredElapsed += dt;
+              // Le sol est humide : la plante pousse (avec bonus météo si vent/pluie) !
+              plot.wateredElapsed += dt * (currentWeather.growMult || 1);
               plot.plantHolder.rotation.z = 0;
             } else {
               // Le sol est complètement sec : la plante s'arrête de pousser !
