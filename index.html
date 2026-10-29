@@ -3,421 +3,296 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Le Refuge des Thés</title>
+  <title>Le Refuge des Thés 3D</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#6b8e63">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
     :root {
       --bg-cream: #fdf8f2;
-      --bg-card: #ffffff;
       --wood-light: #f3e5d8;
-      --wood-border: #d8c2ac;
+      --wood-border: #c8ad90;
+      --wood-dark: #7d5a3c;
       --green-main: #6b8e63;
-      --green-dark: #4c6946;
-      --green-soft: #e6f0e4;
+      --green-dark: #3e5c38;
       --accent-coral: #e07a5f;
-      --accent-gold: #f2cc8f;
+      --accent-gold: #f4b942;
       --text-main: #4a3f35;
-      --text-muted: #8c7b6b;
     }
 
     * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-    
+
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background-color: var(--bg-cream);
-      color: var(--text-main);
-      height: 100dvh;
-      display: flex;
-      flex-direction: column;
       overflow: hidden;
+      width: 100vw;
+      height: 100dvh;
+      background: #8ecae6;
+      color: var(--text-main);
     }
 
-    /* HEADER & RESSOURCES */
-    header {
-      background: var(--wood-light);
-      border-bottom: 3px solid var(--wood-border);
-      padding: 12px 16px;
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+    }
+
+    /* HUD SUPERPOSÉ FAÇON HAY DAY */
+    .hud-top {
+      position: fixed;
+      top: 12px; left: 12px; right: 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      z-index: 10;
+      z-index: 20;
+      pointer-events: none;
     }
-    .resources { display: flex; gap: 10px; }
+    .hud-group {
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
     .pill {
-      background: var(--bg-card);
-      border: 2px solid var(--wood-border);
+      background: rgba(253, 248, 242, 0.95);
+      border: 3px solid var(--wood-border);
       border-radius: 999px;
-      padding: 5px 12px;
+      padding: 6px 14px;
       font-weight: 800;
       font-size: 0.95rem;
       display: flex;
       align-items: center;
       gap: 6px;
-      box-shadow: 0 2px 0 var(--wood-border);
+      box-shadow: 0 4px 0 rgba(0,0,0,0.15);
     }
-    .header-actions { display: flex; gap: 8px; align-items: center; }
-    .version-tag { font-size: 0.75rem; color: var(--text-muted); font-weight: 700; }
     .icon-btn {
-      background: var(--bg-card);
-      border: 2px solid var(--wood-border);
+      background: rgba(253, 248, 242, 0.95);
+      border: 3px solid var(--wood-border);
       border-radius: 50%;
-      width: 36px; height: 36px;
+      width: 42px; height: 42px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 1.1rem; cursor: pointer;
-      box-shadow: 0 2px 0 var(--wood-border);
-    }
-    .icon-btn:active { transform: translateY(2px); box-shadow: none; }
-
-    /* CONTENEUR D'ONGLETS */
-    main {
-      flex: 1;
+      font-size: 1.2rem; cursor: pointer;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.15);
       position: relative;
-      overflow-y: auto;
-      padding: 16px;
+    }
+    .icon-btn:active { transform: translateY(2px); }
+    .badge-dot {
+      position: absolute; top: -2px; right: -2px;
+      width: 12px; height: 12px;
+      background: var(--accent-coral);
+      border: 2px solid white;
+      border-radius: 50%;
+      display: none;
+    }
+
+    /* ÉTIQUETTES FLOTTANTES ANCRÉES SUR LA 3D */
+    #labels-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+      overflow: hidden;
+    }
+    .world-label {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      pointer-events: auto;
+      transition: opacity 0.15s;
+    }
+    .client-bubble {
+      background: white;
+      border: 3px solid var(--wood-border);
+      border-radius: 18px;
+      padding: 8px 12px;
+      text-align: center;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.18);
+      min-width: 155px;
+      cursor: pointer;
+      animation: floatBubble 2.5s ease-in-out infinite;
+    }
+    @keyframes floatBubble {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+    .client-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -10px; left: 50%;
+      transform: translateX(-50%);
+      border-width: 10px 8px 0;
+      border-style: solid;
+      border-color: var(--wood-border) transparent;
+    }
+    .bubble-title { font-size: 0.78rem; font-weight: 800; color: var(--green-dark); margin-bottom: 4px; }
+    .bubble-req { display: flex; justify-content: center; gap: 6px; align-items: center; font-size: 1.1rem; }
+    .plot-tag {
+      background: rgba(50, 40, 32, 0.82);
+      color: white;
+      padding: 3px 8px;
+      border-radius: 99px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .plot-tag.ready {
+      background: var(--accent-gold);
+      color: #3d2b1f;
+      font-size: 0.8rem;
+      font-weight: 800;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+    }
+
+    /* BARRE DE CONTRÔLE BASSE (GRAINES & COMPTOIR DE THÉ) */
+    .hud-bottom {
+      position: fixed;
+      bottom: 12px; left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 24px);
+      max-width: 440px;
+      z-index: 20;
       display: flex;
       flex-direction: column;
-      align-items: center;
-    }
-    .tab-view { display: none; width: 100%; max-width: 420px; flex-direction: column; gap: 14px; animation: fadeIn 0.25s ease; }
-    .tab-view.active { display: flex; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-
-    /* ONGLET 1 : SALON DE THÉ */
-    .client-stage {
-      background: linear-gradient(180deg, #e6f0e4 0%, #fdf8f2 100%);
-      border: 3px solid var(--wood-border);
-      border-radius: 24px;
-      padding: 18px;
-      text-align: center;
-      position: relative;
-      box-shadow: 0 6px 0 var(--wood-border);
-    }
-    .friendship-badge {
-      position: absolute; top: 12px; right: 12px;
-      background: var(--bg-card);
-      border: 2px solid var(--wood-border);
-      border-radius: 12px;
-      padding: 4px 8px;
-      font-size: 0.78rem;
-      font-weight: 700;
-    }
-    .animal-sprite {
-      font-size: 4.4rem;
-      line-height: 1;
-      margin: 8px 0;
-      display: inline-block;
-      animation: floatIdle 3s ease-in-out infinite;
-    }
-    @keyframes floatIdle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-    .animal-name { font-size: 1.15rem; font-weight: 800; color: var(--green-dark); }
-    
-    .speech-bubble {
-      background: var(--bg-card);
-      border: 2px solid var(--wood-border);
-      border-radius: 16px;
-      padding: 10px 14px;
-      margin-top: 10px;
-      font-size: 0.9rem;
-      line-height: 1.35;
-      position: relative;
-    }
-    .recipe-req {
-      display: flex;
-      justify-content: center;
       gap: 8px;
-      margin-top: 8px;
     }
-    .req-tag {
-      background: var(--wood-light);
-      padding: 4px 10px;
-      border-radius: 99px;
-      font-weight: 700;
-      font-size: 0.82rem;
-    }
-
-    /* ZONE DE PRÉPARATION DE LA TASSE */
-    .counter-box {
-      background: var(--bg-card);
+    .dock-panel {
+      background: rgba(253, 248, 242, 0.96);
       border: 3px solid var(--wood-border);
-      border-radius: 24px;
-      padding: 16px;
-      text-align: center;
-      box-shadow: 0 6px 0 var(--wood-border);
+      border-radius: 22px;
+      padding: 10px 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
     }
-    .cup-area {
-      display: flex;
-      align-items: center;
-      justify-content: space-around;
-      margin-bottom: 14px;
-    }
-    .cup-visual {
-      width: 90px; height: 80px;
-      position: relative;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .cup-slots {
-      display: flex; gap: 8px; align-items: center;
-    }
-    .slot-circle {
-      width: 46px; height: 46px;
-      border-radius: 14px;
-      border: 2px dashed var(--wood-border);
-      background: var(--bg-cream);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.4rem;
-    }
-    .pantry-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-    .ing-btn {
-      background: var(--green-soft);
-      border: 2px solid var(--green-main);
-      border-radius: 14px;
-      padding: 10px;
+    .dock-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-weight: 700;
-      color: var(--green-dark);
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: var(--wood-dark);
+      margin-bottom: 8px;
+    }
+    .seeds-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .seed-card {
+      background: white;
+      border: 2px solid var(--wood-border);
+      border-radius: 14px;
+      padding: 6px 4px;
+      text-align: center;
       cursor: pointer;
+      position: relative;
+      transition: transform 0.1s;
+    }
+    .seed-card.active {
+      background: #e6f2e4;
+      border-color: var(--green-main);
       box-shadow: 0 3px 0 var(--green-main);
+      transform: translateY(-2px);
     }
-    .ing-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--green-main); }
-    .ing-btn.empty { opacity: 0.5; filter: grayscale(0.6); }
-    .ing-stock {
-      background: var(--bg-card);
-      padding: 2px 7px;
+    .seed-stock {
+      position: absolute;
+      top: -5px; right: -4px;
+      background: var(--wood-dark);
+      color: white;
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 1px 6px;
       border-radius: 99px;
-      font-size: 0.78rem;
     }
-
-    .action-row { display: flex; gap: 8px; }
-    .btn-main {
+    .tea-maker-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 2px dashed var(--wood-border);
+    }
+    .cup-slots {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .slot {
+      width: 38px; height: 38px;
+      border-radius: 12px;
+      background: white;
+      border: 2px dashed var(--wood-border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem;
+      cursor: pointer;
+    }
+    .btn-serve {
       flex: 1;
       background: var(--accent-coral);
       color: white;
       border: none;
       border-radius: 14px;
-      padding: 12px;
+      padding: 10px 12px;
       font-weight: 800;
-      font-size: 1rem;
+      font-size: 0.9rem;
       cursor: pointer;
-      box-shadow: 0 4px 0 #b5573e;
+      box-shadow: 0 4px 0 #b35237;
     }
-    .btn-main:active { transform: translateY(3px); box-shadow: 0 1px 0 #b5573e; }
-    .btn-clear {
-      background: var(--wood-light);
-      color: var(--text-main);
-      border: 2px solid var(--wood-border);
-      border-radius: 14px;
-      padding: 12px 16px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    /* ONGLET 2 : POTAGER HAY DAY */
-    .garden-header {
-      background: var(--bg-card);
-      border: 3px solid var(--wood-border);
-      border-radius: 20px;
-      padding: 12px 16px;
-      text-align: center;
-    }
-    .seed-selector {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding: 6px 0;
-    }
-    .seed-tab {
-      flex: 1;
-      min-width: 75px;
-      background: var(--bg-cream);
-      border: 2px solid var(--wood-border);
-      border-radius: 14px;
-      padding: 8px 6px;
-      text-align: center;
-      cursor: pointer;
-      font-size: 0.8rem;
-      font-weight: 700;
-    }
-    .seed-tab.selected {
-      background: var(--green-soft);
-      border-color: var(--green-main);
-      color: var(--green-dark);
-      box-shadow: 0 3px 0 var(--green-main);
-    }
-    .plots-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
-    .plot-card {
-      background: #9c7a5b;
-      border: 4px solid #75583f;
-      border-radius: 20px;
-      height: 115px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      cursor: pointer;
-      position: relative;
-      box-shadow: inset 0 4px 8px rgba(0,0,0,0.2), 0 4px 0 #75583f;
-      transition: transform 0.1s;
-    }
-    .plot-card:active { transform: scale(0.97); }
-    .plot-card.ready {
-      background: #849c5b;
-      border-color: #5d753f;
-      animation: pulsePlot 1.5s infinite;
-    }
-    @keyframes pulsePlot { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
-    .plot-icon { font-size: 2.4rem; }
-    .plot-label { font-size: 0.8rem; font-weight: 700; margin-top: 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
-    .progress-bar {
-      width: 75%; height: 8px;
-      background: rgba(0,0,0,0.3);
-      border-radius: 99px;
-      margin-top: 6px;
-      overflow: hidden;
-    }
-    .progress-fill { height: 100%; background: var(--accent-gold); width: 0%; transition: width 0.25s linear; }
-
-    /* ONGLET 3 : CARNET & LETTRES SECRÈTES */
-    .gift-banner {
-      background: linear-gradient(135deg, #f2cc8f 0%, #e07a5f 100%);
-      color: white;
-      border-radius: 20px;
-      padding: 16px;
-      text-align: center;
-      box-shadow: 0 5px 0 #c45f44;
-    }
-    .gift-banner button {
-      margin-top: 10px;
-      background: white;
-      color: #c45f44;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 99px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-    .album-grid { display: flex; flex-direction: column; gap: 10px; }
-    .album-card {
-      background: var(--bg-card);
-      border: 3px solid var(--wood-border);
-      border-radius: 18px;
-      padding: 12px 14px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      box-shadow: 0 4px 0 var(--wood-border);
-    }
-    .album-avatar { font-size: 2.5rem; background: var(--wood-light); width: 58px; height: 58px; border-radius: 16px; display: flex; align-items: center; justify-content: center; }
-    .album-info { flex: 1; }
-    .album-title { font-weight: 800; font-size: 1rem; }
-    .album-desc { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
-    .btn-note {
+    .btn-serve:active { transform: translateY(2px); box-shadow: 0 2px 0 #b35237; }
+    .btn-add-cup {
       background: var(--green-main);
       color: white;
       border: none;
       border-radius: 12px;
-      padding: 8px 12px;
-      font-weight: 700;
-      font-size: 0.8rem;
-      cursor: pointer;
-    }
-    .btn-note:disabled { background: var(--wood-border); color: var(--text-muted); cursor: not-allowed; }
-
-    /* NAVIGATION BASSE */
-    nav {
-      background: var(--wood-light);
-      border-top: 3px solid var(--wood-border);
-      display: flex;
-      padding: 8px 12px 14px;
-      gap: 10px;
-    }
-    .nav-btn {
-      flex: 1;
-      background: var(--bg-card);
-      border: 2px solid var(--wood-border);
-      border-radius: 16px;
-      padding: 8px 4px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
+      padding: 10px;
       font-weight: 800;
-      font-size: 0.78rem;
-      color: var(--text-muted);
+      font-size: 0.82rem;
       cursor: pointer;
-      position: relative;
-      box-shadow: 0 3px 0 var(--wood-border);
-    }
-    .nav-btn.active {
-      background: var(--green-soft);
-      border-color: var(--green-main);
-      color: var(--green-dark);
-      box-shadow: 0 3px 0 var(--green-main);
-    }
-    .badge-dot {
-      position: absolute; top: 4px; right: 14px;
-      width: 10px; height: 10px;
-      background: var(--accent-coral);
-      border-radius: 50%;
-      display: none;
+      box-shadow: 0 4px 0 var(--green-dark);
     }
 
-    /* MODALES (MOTS DOUX & MISE À JOUR HAY DAY) */
+    /* MODALES (CARNET, MOTS DOUX, MISE À JOUR) */
     .modal-overlay {
       position: fixed; inset: 0;
-      background: rgba(45, 36, 30, 0.65);
-      backdrop-filter: blur(3px);
+      background: rgba(35, 28, 22, 0.65);
+      backdrop-filter: blur(4px);
       display: none;
       align-items: center;
       justify-content: center;
-      padding: 20px;
-      z-index: 1000;
+      padding: 18px;
+      z-index: 100;
     }
     .modal-box {
       background: var(--bg-cream);
       border: 4px solid var(--wood-border);
       border-radius: 26px;
-      padding: 24px;
-      max-width: 350px;
+      padding: 20px;
+      max-width: 380px;
       width: 100%;
+      max-height: 82dvh;
+      overflow-y: auto;
       text-align: center;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
-      animation: popIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      box-shadow: 0 14px 35px rgba(0,0,0,0.3);
+      animation: popIn 0.25s ease-out;
     }
-    @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    .modal-icon { font-size: 3.4rem; margin-bottom: 8px; }
-    .modal-title { font-size: 1.25rem; font-weight: 800; color: var(--green-dark); margin-bottom: 10px; }
-    .modal-text {
-      background: var(--bg-card);
+    @keyframes popIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .album-item {
+      background: white;
       border: 2px solid var(--wood-border);
       border-radius: 16px;
-      padding: 14px;
-      font-size: 0.95rem;
-      line-height: 1.45;
-      margin-bottom: 16px;
-      color: var(--text-main);
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      text-align: left;
     }
-
-    /* PARTICULES FLOTTANTES & TOAST */
     .floating-particle {
       position: fixed;
       pointer-events: none;
       font-weight: 800;
-      font-size: 1.2rem;
-      z-index: 2000;
-      animation: floatUp 1s ease-out forwards;
+      font-size: 1.15rem;
+      z-index: 200;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      animation: floatUp 1.1s ease-out forwards;
     }
     @keyframes floatUp {
       0% { opacity: 1; transform: translateY(0) scale(0.9); }
@@ -427,140 +302,109 @@
 </head>
 <body>
 
-  <!-- EN-TÊTE -->
-  <header>
-    <div class="resources">
+  <!-- SCÈNE 3D THREE.JS -->
+  <div id="canvas-container"></div>
+
+  <!-- BULLES FLOTTANTES ANCRÉES SUR LES OBJETS 3D -->
+  <div id="labels-layer">
+    <div id="client-bubble-wrapper" class="world-label">
+      <div class="client-bubble" onclick="serveTea()">
+        <div class="bubble-title" id="hud-animal-name">Pompon</div>
+        <div class="bubble-req" id="hud-animal-req">🌼 + 🍯</div>
+        <div style="font-size:0.68rem; color:#8c7b6b; margin-top:2px;">Toucher pour servir ✨</div>
+      </div>
+    </div>
+    <div id="plot-labels"></div>
+  </div>
+
+  <!-- BARRE DU HAUT -->
+  <div class="hud-top">
+    <div class="hud-group">
       <div class="pill">🪙 <span id="ui-coins">0</span></div>
       <div class="pill">💖 <span id="ui-hearts">0</span></div>
     </div>
-    <div class="header-actions">
-      <span class="version-tag" id="ui-version">v1.0.0</span>
+    <div class="hud-group">
+      <button class="icon-btn" onclick="openAlbumModal()" title="Carnet d'amis">
+        📖
+        <span class="badge-dot" id="album-dot"></span>
+      </button>
       <button class="icon-btn" id="btn-sound" onclick="toggleSound()">🔊</button>
-    </div>
-  </header>
-
-  <!-- CONTENU PRINCIPAL -->
-  <main>
-    <!-- VUE 1 : LE SALON DE THÉ -->
-    <section id="tab-salon" class="tab-view active">
-      <div class="client-stage">
-        <div class="friendship-badge" id="client-friendship">Amitié : 0/3 ⭐</div>
-        <div class="animal-sprite" id="client-sprite">🐰</div>
-        <div class="animal-name" id="client-name">Pompon le Lapin</div>
-        <div class="speech-bubble">
-          <div id="client-dialogue">« Coucou ! J'aimerais une infusion douce pour me réchauffer les pattes. »</div>
-          <div class="recipe-req" id="client-recipe"></div>
-        </div>
-      </div>
-
-      <div class="counter-box">
-        <div class="cup-area">
-          <div class="cup-visual">
-            <!-- Tasse SVG dynamique -->
-            <svg width="85" height="75" viewBox="0 0 100 90">
-              <path d="M35 18 Q40 8 35 2 M55 18 Q60 8 55 2" stroke="#b0c4b1" stroke-width="3" fill="none" stroke-linecap="round"/>
-              <path d="M72 35 H84 A12 12 0 0 1 84 60 H72" fill="none" stroke="#d98a6c" stroke-width="7"/>
-              <path d="M18 28 H76 V55 A28 28 0 0 1 20 55 Z" fill="#fdf8f2" stroke="#d98a6c" stroke-width="6"/>
-              <path id="cup-liquid" d="M22 40 H72 V54 A24 24 0 0 1 22 54 Z" fill="#e6ccb2" opacity="0.25"/>
-              <line x1="10" y1="82" x2="84" y2="82" stroke="#8c6d53" stroke-width="6" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div>
-            <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:6px;">Dans la tasse (2 ingr.) :</div>
-            <div class="cup-slots">
-              <div class="slot-circle" id="slot-0"></div>
-              <span style="font-weight:800; color:var(--wood-border);">+</span>
-              <div class="slot-circle" id="slot-1"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="pantry-grid" id="pantry-list"></div>
-
-        <div class="action-row">
-          <button class="btn-clear" onclick="clearCup()">Vider</button>
-          <button class="btn-main" onclick="serveTea()">Servir l'infusion ✨</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- VUE 2 : LE POTAGER (FAÇON HAY DAY) -->
-    <section id="tab-garden" class="tab-view">
-      <div class="garden-header">
-        <div style="font-weight:800; font-size:0.95rem; margin-bottom:6px;">🌱 Sélectionne une graine à planter :</div>
-        <div class="seed-selector" id="seed-selector"></div>
-      </div>
-
-      <div class="plots-grid" id="plots-grid"></div>
-    </section>
-
-    <!-- VUE 3 : CARNET DES HABITUÉS & MOTS DOUX -->
-    <section id="tab-album" class="tab-view">
-      <div class="gift-banner">
-        <div style="font-weight:800; font-size:1.05rem;">🎁 Le Colis Surprise du Refuge</div>
-        <div style="font-size:0.85rem; opacity:0.95; margin-top:4px;" id="grand-gift-status">Collecte 50 💖 pour ouvrir la grande enveloppe !</div>
-        <button id="btn-grand-gift" onclick="openGrandGift()" style="display:none;">Ouvrir ma surprise 💌</button>
-      </div>
-
-      <div class="album-grid" id="album-list"></div>
-    </section>
-  </main>
-
-  <!-- BARRE DE NAVIGATION -->
-  <nav>
-    <button class="nav-btn active" onclick="switchTab('salon', this)">
-      <span style="font-size:1.3rem;">🍵</span>
-      <span>Comptoir</span>
-    </button>
-    <button class="nav-btn" onclick="switchTab('garden', this)">
-      <span class="badge-dot" id="garden-dot"></span>
-      <span style="font-size:1.3rem;">🌻</span>
-      <span>Potager</span>
-    </button>
-    <button class="nav-btn" onclick="switchTab('album', this)">
-      <span class="badge-dot" id="album-dot"></span>
-      <span style="font-size:1.3rem;">📖</span>
-      <span>Carnet</span>
-    </button>
-  </nav>
-
-  <!-- MODALE UNIVERSELLE (MOT DOUX & SURPRISE) -->
-  <div class="modal-overlay" id="modal-note">
-    <div class="modal-box">
-      <div class="modal-icon" id="modal-icon">💌</div>
-      <div class="modal-title" id="modal-title">Secret débloqué</div>
-      <div class="modal-text" id="modal-body">Message ici</div>
-      <button class="btn-main" style="width:100%;" onclick="closeModal()">Fermer avec le sourire ❤️</button>
     </div>
   </div>
 
-  <!-- MODALE DE MISE À JOUR FAÇON HAY DAY -->
+  <!-- DOCK DU BAS : POTAGER 3D & PRÉPARATION DU THÉ -->
+  <div class="hud-bottom">
+    <div class="dock-panel">
+      <div class="dock-header">
+        <span>🌱 Toucher un carré de terre 3D pour planter/récolter :</span>
+        <span id="ui-version">v2.0.0</span>
+      </div>
+      <div class="seeds-row" id="seeds-row"></div>
+
+      <div class="tea-maker-row">
+        <div class="cup-slots">
+          <div class="slot" id="slot-0" onclick="clearCup()" title="Vider la tasse"></div>
+          <span style="font-weight:800; color:var(--wood-dark);">+</span>
+          <div class="slot" id="slot-1" onclick="clearCup()" title="Vider la tasse"></div>
+        </div>
+        <button class="btn-add-cup" onclick="addSelectedToCup(event)">+ Mettre dans la tasse</button>
+        <button class="btn-serve" onclick="serveTea()">Servir 🍵</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE CARNET DES HABITUÉS & SURPRISE -->
+  <div class="modal-overlay" id="modal-album">
+    <div class="modal-box">
+      <h2 style="color:var(--green-dark); margin-bottom:6px;">📖 Carnet du Refuge 3D</h2>
+      <p style="font-size:0.82rem; color:#7d6b5d; margin-bottom:12px;">Sers les thés demandés aux animaux en 3D pour débloquer leurs mots doux !</p>
+      
+      <div style="background:linear-gradient(135deg,#f4b942,#e07a5f); color:white; padding:12px; border-radius:16px; margin-bottom:12px;">
+        <div style="font-weight:800; font-size:0.95rem;">🎁 Grand Colis Surprise</div>
+        <div id="gift-progress-text" style="font-size:0.8rem; margin-top:4px;"></div>
+        <button id="btn-open-grand-gift" onclick="showGrandGift()" style="display:none; margin-top:8px; background:white; color:#c85a32; border:none; padding:6px 14px; border-radius:99px; font-weight:800; cursor:pointer;">Ouvrir l'enveloppe 💌</button>
+      </div>
+
+      <div id="album-items"></div>
+      <button class="btn-serve" style="width:100%; margin-top:8px;" onclick="closeModal('modal-album')">Retour à la ferme 🌻</button>
+    </div>
+  </div>
+
+  <!-- MODALE LECTURE D'UN MOT DOUX -->
+  <div class="modal-overlay" id="modal-note">
+    <div class="modal-box">
+      <div style="font-size:3.2rem;" id="note-icon">💌</div>
+      <h3 style="color:var(--green-dark); margin:8px 0;" id="note-title">Secret</h3>
+      <div style="background:white; border:2px solid var(--wood-border); border-radius:16px; padding:14px; font-size:0.95rem; line-height:1.45; margin-bottom:14px;" id="note-body"></div>
+      <button class="btn-serve" style="width:100%;" onclick="closeModal('modal-note')">Fermer avec le sourire ❤️</button>
+    </div>
+  </div>
+
+  <!-- MODALE MISE À JOUR HAY DAY -->
   <div class="modal-overlay" id="modal-update">
     <div class="modal-box">
-      <div class="modal-icon">📦</div>
-      <div class="modal-title">Nouvelle livraison au Refuge !</div>
-      <div class="modal-text">
-        Le facteur vient d'apporter une mise à jour avec de nouvelles surprises. Ta progression est intégralement conservée !
-      </div>
-      <button class="btn-main" style="width:100%;" id="btn-apply-update">Installer la mise à jour ✨</button>
+      <div style="font-size:3.2rem;">🚜</div>
+      <h3 style="color:var(--green-dark); margin:8px 0;">Nouvelle mise à jour du Refuge !</h3>
+      <p style="font-size:0.9rem; margin-bottom:14px;">De nouvelles surprises viennent d'arriver ! Ta progression est 100% conservée.</p>
+      <button class="btn-serve" style="width:100%;" id="btn-apply-update">Mettre à jour maintenant ✨</button>
     </div>
   </div>
 
   <script>
     /* =========================================================================
-       1. ZONE DE PERSONNALISATION (Modifie ici pour tes futures mises à jour !)
+       1. CONFIGURATION ET TEXTES PERSONNALISÉS
        ========================================================================= */
     const GAME_CONFIG = {
-      version: "v1.0.0",
+      version: "v2.0.0",
       grandGoalHearts: 50,
       grandGiftTitle: "Pour ma personne préférée ❤️",
-      grandGiftMessage: "Bravo d'avoir pris soin de tous les petits animaux du refuge ! Ce bon te donne droit à une soirée massage + ton repas préféré préparé par mes soins quand tu le souhaites. Je t'aime fort !",
+      grandGiftMessage: "Bravo d'avoir fait fleurir ce petit refuge 3D ! Ce bon te donne droit à une soirée massage + ton plat préféré préparé par mes soins quand tu le veux. Je t'aime fort !",
       
       ingredients: {
-        camomille: { id: "camomille", name: "Camomille", icon: "🌼", growTime: 5, color: "#f3d57c" },
-        menthe:    { id: "menthe",    name: "Menthe",    icon: "🍃", growTime: 6, color: "#88c999" },
-        baies:     { id: "baies",     name: "Baies",     icon: "🫐", growTime: 8, color: "#9c89b8" },
-        miel:      { id: "miel",      name: "Miel",      icon: "🍯", growTime: 10, color: "#f4a261" }
+        camomille: { id: "camomille", name: "Camomille", icon: "🌼", growTime: 5, color: 0xf4d35e },
+        menthe:    { id: "menthe",    name: "Menthe",    icon: "🍃", growTime: 6, color: 0x52b788 },
+        baies:     { id: "baies",     name: "Baies",     icon: "🫐", growTime: 8, color: 0x7b2cbf },
+        miel:      { id: "miel",      name: "Miel",      icon: "🍯", growTime: 10, color: 0xf4a261 }
       },
 
       animals: [
@@ -568,8 +412,9 @@
           id: "lapin",
           name: "Pompon le Lapin",
           icon: "🐰",
+          color: 0xffffff,
+          earColor: 0xffcad4,
           maxDrinks: 2,
-          dialogue: "« Coucou ! J'aimerais une infusion Camomille et Miel pour me réchauffer les oreilles ! »",
           recipe: ["camomille", "miel"],
           secretNote: "Petit mot de Pompon : Tout comme ce thé au miel, chaque journée passée avec toi à l'appartement est mille fois plus douce. 🐰❤️"
         },
@@ -577,8 +422,9 @@
           id: "renard",
           name: "Roux le Renardeau",
           icon: "🦊",
+          color: 0xe76f51,
+          earColor: 0x264653,
           maxDrinks: 2,
-          dialogue: "« Salut ! Un thé fruité aux Baies et à la Menthe fraîche me ferait trop plaisir ! »",
           recipe: ["baies", "menthe"],
           secretNote: "Secret de Roux : J'adore nos petits moments rien qu'à nous deux. Tu es la meilleure coéquipière du monde au quotidien ! 🦊✨"
         },
@@ -586,8 +432,9 @@
           id: "herisson",
           name: "Piquot le Hérisson",
           icon: "🦔",
+          color: 0x8d6e63,
+          earColor: 0x5d4037,
           maxDrinks: 2,
-          dialogue: "« Brrr... Une double dose de Baies et de Miel pour faire le plein d'énergie s'il te plaît ! »",
           recipe: ["baies", "miel"],
           secretNote: "Message de Piquot : Même quand tu rentres fatiguée de ta journée, ton sourire illumine toute la pièce. Prends soin de toi ! 🦔🌸"
         },
@@ -595,8 +442,9 @@
           id: "chat",
           name: "Mochi le Chaton",
           icon: "🐱",
+          color: 0xf6bd60,
+          earColor: 0xf28482,
           maxDrinks: 2,
-          dialogue: "« Miaou ~ Une infusion apaisante Camomille et Menthe avant ma sieste au soleil ? »",
           recipe: ["camomille", "menthe"],
           secretNote: "Confidence de Mochi : Ronronner à tes côtés est mon activité favorite. Merci d'être toi, tout simplement. 🐱💖"
         }
@@ -604,7 +452,7 @@
     };
 
     /* =========================================================================
-       2. SYNTHÉTISEUR AUDIO NATIF (Zéro fichier MP3 externe)
+       2. SYNTHÉTISEUR AUDIO NATIF
        ========================================================================= */
     let soundEnabled = true;
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -619,7 +467,7 @@
         const gain = audioCtx.createGain();
         osc.type = type;
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
-        gain.gain.setValueAtTime(0.12, audioCtx.currentTime + delay);
+        gain.gain.setValueAtTime(0.11, audioCtx.currentTime + delay);
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
@@ -627,17 +475,16 @@
         osc.stop(audioCtx.currentTime + delay + duration);
       } catch (e) {}
     }
-
-    function sfxClick() { playTone(520, 'sine', 0.08); }
-    function sfxHarvest() { playTone(587, 'triangle', 0.1, 0); playTone(880, 'triangle', 0.15, 0.07); }
-    function sfxServeSuccess() {
+    function sfxClick() { playTone(540, 'sine', 0.07); }
+    function sfxPlant() { playTone(360, 'triangle', 0.09); playTone(480, 'triangle', 0.11, 0.05); }
+    function sfxHarvest() { playTone(587, 'triangle', 0.1, 0); playTone(880, 'triangle', 0.16, 0.07); }
+    function sfxSuccess() {
       playTone(523.25, 'sine', 0.12, 0);
-      playTone(659.25, 'sine', 0.12, 0.1);
-      playTone(783.99, 'sine', 0.18, 0.2);
-      playTone(1046.5, 'sine', 0.25, 0.3);
+      playTone(659.25, 'sine', 0.12, 0.09);
+      playTone(783.99, 'sine', 0.15, 0.18);
+      playTone(1046.5, 'sine', 0.25, 0.27);
     }
-    function sfxError() { playTone(220, 'sawtooth', 0.15, 0); playTone(180, 'sawtooth', 0.2, 0.12); }
-
+    function sfxError() { playTone(210, 'sawtooth', 0.15, 0); playTone(175, 'sawtooth', 0.18, 0.1); }
     function toggleSound() {
       soundEnabled = !soundEnabled;
       document.getElementById('btn-sound').innerText = soundEnabled ? '🔊' : '🔇';
@@ -645,22 +492,19 @@
     }
 
     /* =========================================================================
-       3. GESTION DE LA SAUVEGARDE PERSISTANTE (Compatible futures MàJ)
+       3. SAUVEGARDE PERSISTANTE (Conserve tout depuis la v1.0.0)
        ========================================================================= */
     const STORAGE_KEY = 'refuge_save_v1';
-    
     function loadSave() {
       const raw = localStorage.getItem(STORAGE_KEY);
-      const defaultSave = {
-        coins: 20,
+      const def = {
+        coins: 25,
         hearts: 0,
-        inventory: { camomille: 2, menthe: 1, baies: 1, miel: 2 },
+        inventory: { camomille: 2, menthe: 2, baies: 1, miel: 2 },
         friendship: {},
         currentAnimalIndex: 0
       };
-      let data = raw ? JSON.parse(raw) : defaultSave;
-      
-      // Fusion intelligente : si une mise à jour ajoute un ingrédient ou un animal, on l'initialise sans rien perdre
+      let data = raw ? JSON.parse(raw) : def;
       Object.keys(GAME_CONFIG.ingredients).forEach(k => {
         if (typeof data.inventory[k] !== 'number') data.inventory[k] = 1;
       });
@@ -672,320 +516,682 @@
     }
 
     let state = loadSave();
+    let selectedSeed = 'camomille';
+    let currentCup = [];
+
     function saveGame() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      updateHeaderUI();
+      updateHUD();
     }
 
-    /* =========================================================================
-       4. LOGIQUE DU SALON DE THÉ & POTAGER
-       ========================================================================= */
-    let currentCup = [];
-    let selectedSeed = 'camomille';
-    let plots = [
-      { id: 0, state: 'empty', crop: null, plantedAt: 0, duration: 0 },
-      { id: 1, state: 'empty', crop: null, plantedAt: 0, duration: 0 },
-      { id: 2, state: 'empty', crop: null, plantedAt: 0, duration: 0 },
-      { id: 3, state: 'empty', crop: null, plantedAt: 0, duration: 0 }
-    ];
-
-    function spawnParticle(text, x, y, color = '#e07a5f') {
+    function spawnFloatingText(text, x, y, color = '#e07a5f') {
       const el = document.createElement('div');
       el.className = 'floating-particle';
       el.innerText = text;
-      el.style.left = (x || window.innerWidth / 2 - 20) + 'px';
+      el.style.left = (x || window.innerWidth / 2 - 30) + 'px';
       el.style.top = (y || window.innerHeight / 2) + 'px';
       el.style.color = color;
       document.body.appendChild(el);
-      setTimeout(() => el.remove(), 1000);
+      setTimeout(() => el.remove(), 1100);
     }
 
-    function updateHeaderUI() {
+    /* =========================================================================
+       4. MOTEUR 3D ISOMÉTRIQUE FAÇON HAY DAY (THREE.JS)
+       ========================================================================= */
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x90dbf4);
+
+    // Caméra Orthographique Isométrique
+    let aspect = window.innerWidth / window.innerHeight;
+    const viewSize = 15;
+    const camera = new THREE.OrthographicCamera(
+      -viewSize * aspect / 2, viewSize * aspect / 2,
+      viewSize / 2, -viewSize / 2,
+      1, 1000
+    );
+
+    let camAngle = Math.PI / 4; // 45 degrés isométrique
+    let camZoom = 1.05;
+    const camTarget = new THREE.Vector3(0, 0.5, 0);
+
+    function updateCameraPosition() {
+      const dist = 28;
+      camera.position.x = camTarget.x + Math.sin(camAngle) * dist;
+      camera.position.z = camTarget.z + Math.cos(camAngle) * dist;
+      camera.position.y = 22;
+      camera.zoom = camZoom;
+      camera.lookAt(camTarget);
+      camera.updateProjectionMatrix();
+    }
+    updateCameraPosition();
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    // Lumières chaudes façon Hay Day
+    const ambientLight = new THREE.AmbientLight(0xfff5e4, 0.72);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xfff1d0, 0.85);
+    sunLight.position.set(16, 28, 14);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 1024;
+    sunLight.shadow.mapSize.height = 1024;
+    sunLight.shadow.camera.near = 5;
+    sunLight.shadow.camera.far = 65;
+    const d = 14;
+    sunLight.shadow.camera.left = -d;
+    sunLight.shadow.camera.right = d;
+    sunLight.shadow.camera.top = d;
+    sunLight.shadow.camera.bottom = -d;
+    scene.add(sunLight);
+
+    // Matériaux réutilisables
+    const matGrass = new THREE.MeshLambertMaterial({ color: 0x7cb518 });
+    const matEarth = new THREE.MeshLambertMaterial({ color: 0x8d5b4c });
+    const matWater = new THREE.MeshLambertMaterial({ color: 0x48cae4, transparent: true, opacity: 0.85 });
+    const matWood = new THREE.MeshLambertMaterial({ color: 0xa47148 });
+    const matWoodDark = new THREE.MeshLambertMaterial({ color: 0x6f4518 });
+    const matStone = new THREE.MeshLambertMaterial({ color: 0xd6ccc2 });
+
+    // 4.1 Île principale & Rivière
+    const waterMesh = new THREE.Mesh(new THREE.CylinderGeometry(24, 24, 0.6, 32), matWater);
+    waterMesh.position.y = -1.2;
+    scene.add(waterMesh);
+
+    const islandBase = new THREE.Mesh(new THREE.CylinderGeometry(10.5, 9.2, 1.8, 12), matEarth);
+    islandBase.position.y = -0.9;
+    scene.add(islandBase);
+
+    const islandTop = new THREE.Mesh(new THREE.CylinderGeometry(10.8, 10.5, 0.5, 12), matGrass);
+    islandTop.position.y = -0.15;
+    islandTop.receiveShadow = true;
+    scene.add(islandTop);
+
+    // Chemin en pierres
+    for (let i = 0; i < 6; i++) {
+      const stone = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.6, 0.12, 7), matStone);
+      stone.position.set(-1.2 + i * 0.4, 0.11, 2.2 - i * 0.7);
+      stone.rotation.y = i;
+      stone.receiveShadow = true;
+      scene.add(stone);
+    }
+
+    // 4.2 Le Chalet / Salon de Thé 3D
+    const chaletGroup = new THREE.Group();
+    chaletGroup.position.set(-2.5, 0.1, -2.5);
+
+    const bodyMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(3.4, 2.2, 2.6),
+      new THREE.MeshLambertMaterial({ color: 0xfaedcd })
+    );
+    bodyMesh.position.y = 1.1;
+    bodyMesh.castShadow = true;
+    bodyMesh.receiveShadow = true;
+    chaletGroup.add(bodyMesh);
+
+    // Toit du chalet
+    const roofMesh = new THREE.Mesh(
+      new THREE.ConeGeometry(2.8, 1.6, 4),
+      new THREE.MeshLambertMaterial({ color: 0xe07a5f })
+    );
+    roofMesh.position.y = 2.9;
+    roofMesh.rotation.y = Math.PI / 4;
+    roofMesh.castShadow = true;
+    chaletGroup.add(roofMesh);
+
+    // Comptoir en bois devant le chalet
+    const counterMesh = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.9, 0.9), matWood);
+    counterMesh.position.set(0, 0.45, 1.6);
+    counterMesh.castShadow = true;
+    counterMesh.receiveShadow = true;
+    chaletGroup.add(counterMesh);
+
+    // Tasse de thé géante / Théière sur le comptoir
+    const kettleMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.35, 12, 12),
+      new THREE.MeshLambertMaterial({ color: 0xffffff })
+    );
+    kettleMesh.position.set(0.6, 1.15, 1.6);
+    chaletGroup.add(kettleMesh);
+
+    scene.add(chaletGroup);
+
+    // 4.3 Arbres décoratifs qui oscillent au vent
+    const trees = [];
+    function createTree(x, z, scale = 1, tint = 0x52b788) {
+      const g = new THREE.Group();
+      g.position.set(x, 0.1, z);
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.28, 1.1, 7), matWoodDark);
+      trunk.position.y = 0.55;
+      trunk.castShadow = true;
+      g.add(trunk);
+
+      const leavesMat = new THREE.MeshLambertMaterial({ color: tint });
+      const crown1 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.95), leavesMat);
+      crown1.position.y = 1.5;
+      crown1.castShadow = true;
+      g.add(crown1);
+
+      const crown2 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.65), leavesMat);
+      crown2.position.set(0.3, 2.1, 0.2);
+      crown2.castShadow = true;
+      g.add(crown2);
+
+      g.scale.setScalar(scale);
+      scene.add(g);
+      trees.push(g);
+    }
+    createTree(-6.2, -3.2, 1.15, 0x40916c);
+    createTree(-5.5, 2.8, 0.9, 0x52b788);
+    createTree(1.8, -5.5, 1.1, 0x74c69d);
+    createTree(5.8, -2.5, 0.95, 0x52b788);
+    createTree(4.8, 4.2, 1.05, 0x40916c);
+
+    // 4.4 L'Animal Client 3D (Modélisé dynamiquement)
+    const animalAnchor = new THREE.Group();
+    animalAnchor.position.set(-2.5, 0.1, 0.9); // Devant le comptoir
+    scene.add(animalAnchor);
+
+    let activeAnimalMesh = null;
+    let animalJumpTimer = 0;
+
+    function build3DAnimal(animalCfg) {
+      if (activeAnimalMesh) animalAnchor.remove(activeAnimalMesh);
+      const group = new THREE.Group();
+
+      const bodyMat = new THREE.MeshLambertMaterial({ color: animalCfg.color });
+      const earMat = new THREE.MeshLambertMaterial({ color: animalCfg.earColor });
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
+
+      // Corps
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.55, 14, 14), bodyMat);
+      body.scale.set(1, 0.9, 1.1);
+      body.position.y = 0.5;
+      body.castShadow = true;
+      group.add(body);
+
+      // Tête
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 14, 14), bodyMat);
+      head.position.set(0, 1.15, 0.2);
+      head.castShadow = true;
+      group.add(head);
+
+      // Yeux
+      const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), eyeMat);
+      eyeL.position.set(-0.18, 1.22, 0.62);
+      const eyeR = eyeL.clone();
+      eyeR.position.x = 0.18;
+      group.add(eyeL, eyeR);
+
+      // Oreilles selon l'espèce
+      if (animalCfg.id === 'lapin') {
+        const earGeo = new THREE.CylinderGeometry(0.09, 0.11, 0.65, 8);
+        const ear1 = new THREE.Mesh(earGeo, earMat);
+        ear1.position.set(-0.2, 1.75, 0.15);
+        ear1.rotation.z = 0.15;
+        const ear2 = ear1.clone();
+        ear2.position.x = 0.2;
+        ear2.rotation.z = -0.15;
+        group.add(ear1, ear2);
+      } else {
+        const earGeo = new THREE.ConeGeometry(0.18, 0.38, 6);
+        const ear1 = new THREE.Mesh(earGeo, earMat);
+        ear1.position.set(-0.26, 1.6, 0.15);
+        ear1.rotation.z = 0.25;
+        const ear2 = ear1.clone();
+        ear2.position.x = 0.26;
+        ear2.rotation.z = -0.25;
+        group.add(ear1, ear2);
+      }
+
+      // Zone cliquable invisible pour faciliter le toucher sur mobile
+      const hitBox = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.9, 0.9, 2.2, 8),
+        new THREE.MeshBasicMaterial({ visible: false })
+      );
+      hitBox.position.y = 1.1;
+      hitBox.userData = { type: 'client' };
+      group.add(hitBox);
+
+      animalAnchor.add(group);
+      activeAnimalMesh = group;
+    }
+
+    // 4.5 Les 6 Parcelles de Potager 3D (Cliquables en 3D !)
+    const plotsData = [];
+    const interactableMeshes = [];
+    const plotLabelsContainer = document.getElementById('plot-labels');
+
+    const plotCoords = [
+      { x: 1.8, z: -1.2 }, { x: 4.1, z: -1.2 },
+      { x: 1.8, z: 1.1 },  { x: 4.1, z: 1.1 },
+      { x: 1.8, z: 3.4 },  { x: 4.1, z: 3.4 }
+    ];
+
+    plotCoords.forEach((coord, idx) => {
+      const plotGroup = new THREE.Group();
+      plotGroup.position.set(coord.x, 0.1, coord.z);
+
+      // Cadre en bois + terre labourée
+      const border = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.22, 1.85), matWood);
+      border.position.y = 0.11;
+      border.castShadow = true;
+      border.receiveShadow = true;
+      plotGroup.add(border);
+
+      const soil = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 0.26, 1.6),
+        new THREE.MeshLambertMaterial({ color: 0x5e3a24 })
+      );
+      soil.position.y = 0.12;
+      soil.receiveShadow = true;
+      soil.userData = { type: 'plot', plotIndex: idx };
+      plotGroup.add(soil);
+      interactableMeshes.push(soil);
+
+      // Groupe contenant la plante 3D qui pousse
+      const plantHolder = new THREE.Group();
+      plantHolder.position.y = 0.25;
+      plotGroup.add(plantHolder);
+
+      scene.add(plotGroup);
+
+      // Étiquette HTML flottante au-dessus de la parcelle 3D
+      const labelEl = document.createElement('div');
+      labelEl.className = 'world-label';
+      labelEl.innerHTML = `<div class="plot-tag" id="plot-tag-${idx}">Vide</div>`;
+      plotLabelsContainer.appendChild(labelEl);
+
+      plotsData.push({
+        index: idx,
+        state: 'empty', // empty, growing, ready
+        crop: null,
+        plantedAt: 0,
+        duration: 0,
+        group: plotGroup,
+        soilMesh: soil,
+        plantHolder: plantHolder,
+        labelEl: labelEl
+      });
+    });
+
+    function rebuildPlotPlant3D(plot) {
+      while (plot.plantHolder.children.length > 0) {
+        plot.plantHolder.remove(plot.plantHolder.children[0]);
+      }
+      if (plot.state === 'empty') return;
+
+      const ing = GAME_CONFIG.ingredients[plot.crop];
+      const stemMat = new THREE.MeshLambertMaterial({ color: 0x40916c });
+      const headMat = new THREE.MeshLambertMaterial({ color: ing.color });
+
+      // 4 petites pousses par parcelle
+      const offsets = [[-0.38, -0.38], [0.38, -0.38], [-0.38, 0.38], [0.38, 0.38]];
+      offsets.forEach(([ox, oz]) => {
+        const sub = new THREE.Group();
+        sub.position.set(ox, 0, oz);
+        const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.45, 6), stemMat);
+        stem.position.y = 0.22;
+        sub.add(stem);
+
+        const blossom = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), headMat);
+        blossom.position.y = 0.5;
+        blossom.castShadow = true;
+        sub.add(blossom);
+
+        plot.plantHolder.add(sub);
+      });
+    }
+
+    /* =========================================================================
+       5. INTERACTIONS TACTILES & SOURIS SUR LA 3D (RAYCASTER + ROTATION CAMÉRA)
+       ========================================================================= */
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    let isDragging = false;
+    let pointerDownPos = { x: 0, y: 0 };
+    let prevAngle = camAngle;
+
+    window.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('.hud-top, .hud-bottom, .modal-overlay, .client-bubble')) return;
+      isDragging = true;
+      pointerDownPos = { x: e.clientX, y: e.clientY };
+      prevAngle = camAngle;
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - pointerDownPos.x;
+      if (Math.abs(dx) > 6) {
+        camAngle = prevAngle - dx * 0.007;
+        updateCameraPosition();
+      }
+    });
+
+    window.addEventListener('pointerup', (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      const distMoved = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+      // Si l'utilisateur a simplement touché sans glisser : clic 3D !
+      if (distMoved < 10) {
+        handle3DTap(e.clientX, e.clientY);
+      }
+    });
+
+    window.addEventListener('wheel', (e) => {
+      camZoom = Math.max(0.75, Math.min(1.55, camZoom - e.deltaY * 0.001));
+      updateCameraPosition();
+    });
+
+    function handle3DTap(clientX, clientY) {
+      pointer.x = (clientX / window.innerWidth) * 2 - 1;
+      pointer.y = -(clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+
+      const hits = raycaster.intersectObjects(scene.children, true);
+      for (const hit of hits) {
+        const data = hit.object.userData;
+        if (data && data.type === 'plot') {
+          interactWithPlot(data.plotIndex, clientX, clientY);
+          return;
+        }
+        if (data && data.type === 'client') {
+          serveTea();
+          return;
+        }
+      }
+    }
+
+    function interactWithPlot(idx, screenX, screenY) {
+      const plot = plotsData[idx];
+      if (plot.state === 'empty') {
+        sfxPlant();
+        const ing = GAME_CONFIG.ingredients[selectedSeed];
+        plot.state = 'growing';
+        plot.crop = selectedSeed;
+        plot.plantedAt = Date.now();
+        plot.duration = ing.growTime;
+        rebuildPlotPlant3D(plot);
+        spawnFloatingText(`🌱 ${ing.name}`, screenX, screenY, '#52b788');
+      } else if (plot.state === 'ready') {
+        sfxHarvest();
+        const ing = GAME_CONFIG.ingredients[plot.crop];
+        state.inventory[plot.crop] = (state.inventory[plot.crop] || 0) + 2;
+        spawnFloatingText(`+2 ${ing.icon}`, screenX, screenY, '#f4b942');
+        plot.state = 'empty';
+        plot.crop = null;
+        rebuildPlotPlant3D(plot);
+        saveGame();
+        renderDock();
+      } else {
+        sfxClick();
+      }
+    }
+
+    /* =========================================================================
+       6. LOGIQUE DU COMPTOIR DE THÉ ET DE L'ALBUM
+       ========================================================================= */
+    function updateHUD() {
       document.getElementById('ui-coins').innerText = state.coins;
       document.getElementById('ui-hearts').innerText = state.hearts;
       document.getElementById('ui-version').innerText = GAME_CONFIG.version;
 
-      // Statut du grand cadeau
-      const giftStatus = document.getElementById('grand-gift-status');
-      const giftBtn = document.getElementById('btn-grand-gift');
-      if (state.hearts >= GAME_CONFIG.grandGoalHearts) {
-        giftStatus.innerText = "✨ Objectif atteint ! Ton enveloppe surprise est prête :";
-        giftBtn.style.display = 'inline-block';
-      } else {
-        giftStatus.innerText = `Progression : ${state.hearts} / ${GAME_CONFIG.grandGoalHearts} 💖 pour ouvrir ta grande surprise !`;
-        giftBtn.style.display = 'none';
-      }
-    }
-
-    function renderClient() {
       const animal = GAME_CONFIG.animals[state.currentAnimalIndex];
-      const friendPoints = state.friendship[animal.id] || 0;
-      document.getElementById('client-sprite').innerText = animal.icon;
-      document.getElementById('client-name').innerText = animal.name;
-      document.getElementById('client-dialogue').innerText = animal.dialogue;
-      document.getElementById('client-friendship').innerText = `Amitié : ${Math.min(friendPoints, animal.maxDrinks)}/${animal.maxDrinks} ⭐`;
-
-      const reqContainer = document.getElementById('client-recipe');
-      reqContainer.innerHTML = animal.recipe.map(ingId => {
-        const ing = GAME_CONFIG.ingredients[ingId];
-        return `<span class="req-tag">${ing.icon} ${ing.name}</span>`;
-      }).join(' + ');
+      document.getElementById('hud-animal-name').innerText = `${animal.icon} ${animal.name}`;
+      document.getElementById('hud-animal-req').innerHTML = animal.recipe
+        .map(id => GAME_CONFIG.ingredients[id].icon)
+        .join(' + ');
     }
 
-    function renderPantry() {
-      const list = document.getElementById('pantry-list');
-      list.innerHTML = Object.values(GAME_CONFIG.ingredients).map(ing => {
+    function renderDock() {
+      const row = document.getElementById('seeds-row');
+      row.innerHTML = Object.values(GAME_CONFIG.ingredients).map(ing => {
         const count = state.inventory[ing.id] || 0;
         return `
-          <button class="ing-btn ${count === 0 ? 'empty' : ''}" onclick="addIngredientToCup('${ing.id}', event)">
-            <span>${ing.icon} ${ing.name}</span>
-            <span class="ing-stock">x${count}</span>
-          </button>
+          <div class="seed-card ${selectedSeed === ing.id ? 'active' : ''}" onclick="selectSeed('${ing.id}')">
+            <span class="seed-stock">x${count}</span>
+            <div style="font-size:1.35rem;">${ing.icon}</div>
+            <div style="font-size:0.72rem; font-weight:800;">${ing.name}</div>
+          </div>
         `;
       }).join('');
-    }
 
-    function renderCup() {
       for (let i = 0; i < 2; i++) {
         const slot = document.getElementById(`slot-${i}`);
-        const ingId = currentCup[i];
-        slot.innerText = ingId ? GAME_CONFIG.ingredients[ingId].icon : '';
+        slot.innerText = currentCup[i] ? GAME_CONFIG.ingredients[currentCup[i]].icon : '';
       }
-      const liquid = document.getElementById('cup-liquid');
-      if (currentCup.length === 0) {
-        liquid.setAttribute('opacity', '0.2');
-        liquid.setAttribute('fill', '#e6ccb2');
-      } else {
-        const lastColor = GAME_CONFIG.ingredients[currentCup[currentCup.length - 1]].color;
-        liquid.setAttribute('opacity', '0.85');
-        liquid.setAttribute('fill', lastColor);
-      }
-    }
-
-    function addIngredientToCup(ingId, ev) {
-      if (currentCup.length >= 2) {
-        sfxError();
-        spawnParticle("Tasse pleine !", ev.clientX - 40, ev.clientY - 20);
-        return;
-      }
-      if ((state.inventory[ingId] || 0) <= 0) {
-        sfxError();
-        spawnParticle("Va en cultiver au potager 🌱", ev.clientX - 70, ev.clientY - 20);
-        return;
-      }
-      sfxClick();
-      state.inventory[ingId]--;
-      currentCup.push(ingId);
-      saveGame();
-      renderPantry();
-      renderCup();
-    }
-
-    function clearCup() {
-      if (currentCup.length === 0) return;
-      sfxClick();
-      currentCup.forEach(ingId => state.inventory[ingId]++);
-      currentCup = [];
-      saveGame();
-      renderPantry();
-      renderCup();
-    }
-
-    function serveTea() {
-      if (currentCup.length < 2) {
-        sfxError();
-        spawnParticle("Ajoute 2 ingrédients !", window.innerWidth / 2 - 60, window.innerHeight / 2);
-        return;
-      }
-
-      const animal = GAME_CONFIG.animals[state.currentAnimalIndex];
-      const sortedCup = [...currentCup].sort().join(',');
-      const sortedRecipe = [...animal.recipe].sort().join(',');
-
-      if (sortedCup === sortedRecipe) {
-        sfxServeSuccess();
-        currentCup = [];
-        state.coins += 15;
-        state.hearts += 10;
-        const prevFriend = state.friendship[animal.id] || 0;
-        state.friendship[animal.id] = prevFriend + 1;
-
-        spawnParticle("+10 💖  +15 🪙", window.innerWidth / 2 - 50, window.innerHeight / 3, '#e07a5f');
-
-        // Si le niveau max d'amitié vient d'être atteint, on signale le carnet !
-        if (prevFriend < animal.maxDrinks && state.friendship[animal.id] >= animal.maxDrinks) {
-          document.getElementById('album-dot').style.display = 'block';
-          setTimeout(() => {
-            openModal(animal.icon, `Nouveau souvenir de ${animal.name} !`, animal.secretNote);
-          }, 500);
-        }
-
-        // Passage au client suivant
-        state.currentAnimalIndex = (state.currentAnimalIndex + 1) % GAME_CONFIG.animals.length;
-        saveGame();
-        renderClient();
-        renderCup();
-        renderAlbum();
-      } else {
-        sfxError();
-        spawnParticle("Oups, mauvaise recette !", window.innerWidth / 2 - 70, window.innerHeight / 2);
-        clearCup();
-      }
-    }
-
-    /* =========================================================================
-       5. SYSTÈME DE POTAGER TEMPS RÉEL (FAÇON HAY DAY)
-       ========================================================================= */
-    function renderSeedSelector() {
-      const container = document.getElementById('seed-selector');
-      container.innerHTML = Object.values(GAME_CONFIG.ingredients).map(ing => `
-        <div class="seed-tab ${selectedSeed === ing.id ? 'selected' : ''}" onclick="selectSeed('${ing.id}')">
-          <div style="font-size:1.4rem;">${ing.icon}</div>
-          <div>${ing.name}</div>
-          <div style="font-size:0.7rem; color:var(--text-muted);">${ing.growTime}s</div>
-        </div>
-      `).join('');
     }
 
     function selectSeed(id) {
       sfxClick();
       selectedSeed = id;
-      renderSeedSelector();
+      renderDock();
     }
 
-    function renderPlots() {
-      const grid = document.getElementById('plots-grid');
-      const now = Date.now();
-      let anyReady = false;
-
-      grid.innerHTML = plots.map(p => {
-        if (p.state === 'empty') {
-          return `
-            <div class="plot-card" onclick="interactPlot(${p.id}, event)">
-              <div class="plot-icon">🕳️</div>
-              <div class="plot-label">Toucher pour planter</div>
-            </div>
-          `;
-        }
-        const ing = GAME_CONFIG.ingredients[p.crop];
-        const elapsed = (now - p.plantedAt) / 1000;
-        const pct = Math.min(100, (elapsed / p.duration) * 100);
-
-        if (pct >= 100) {
-          p.state = 'ready';
-          anyReady = true;
-          return `
-            <div class="plot-card ready" onclick="interactPlot(${p.id}, event)">
-              <div class="plot-icon">${ing.icon}</div>
-              <div class="plot-label">Prêt ! Récolter ✨</div>
-            </div>
-          `;
-        } else {
-          const remaining = Math.ceil(p.duration - elapsed);
-          return `
-            <div class="plot-card" onclick="interactPlot(${p.id}, event)">
-              <div class="plot-icon">🌱</div>
-              <div class="plot-label">${ing.name} (${remaining}s)</div>
-              <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-            </div>
-          `;
-        }
-      }).join('');
-
-      document.getElementById('garden-dot').style.display = anyReady ? 'block' : 'none';
+    function addSelectedToCup(ev) {
+      if (currentCup.length >= 2) {
+        sfxError();
+        spawnFloatingText("Tasse pleine !", ev.clientX - 40, ev.clientY - 25);
+        return;
+      }
+      if ((state.inventory[selectedSeed] || 0) <= 0) {
+        sfxError();
+        spawnFloatingText("Plante-la d'abord dans un carré 3D 🌱", ev.clientX - 90, ev.clientY - 25);
+        return;
+      }
+      sfxClick();
+      state.inventory[selectedSeed]--;
+      currentCup.push(selectedSeed);
+      saveGame();
+      renderDock();
     }
 
-    function interactPlot(plotId, ev) {
-      const p = plots[plotId];
-      if (p.state === 'empty') {
-        sfxClick();
-        const ing = GAME_CONFIG.ingredients[selectedSeed];
-        p.state = 'growing';
-        p.crop = selectedSeed;
-        p.plantedAt = Date.now();
-        p.duration = ing.growTime;
-        renderPlots();
-      } else if (p.state === 'ready') {
-        sfxHarvest();
-        const ing = GAME_CONFIG.ingredients[p.crop];
-        state.inventory[p.crop] = (state.inventory[p.crop] || 0) + 2;
-        spawnParticle(`+2 ${ing.icon}`, ev.clientX - 20, ev.clientY - 20, '#4c6946');
-        p.state = 'empty';
-        p.crop = null;
+    function clearCup() {
+      if (currentCup.length === 0) return;
+      sfxClick();
+      currentCup.forEach(id => state.inventory[id]++);
+      currentCup = [];
+      saveGame();
+      renderDock();
+    }
+
+    function serveTea() {
+      if (currentCup.length < 2) {
+        sfxError();
+        spawnFloatingText("Mets 2 ingrédients dans la tasse !", window.innerWidth / 2 - 90, window.innerHeight / 2);
+        return;
+      }
+      const animal = GAME_CONFIG.animals[state.currentAnimalIndex];
+      const sCup = [...currentCup].sort().join(',');
+      const sRec = [...animal.recipe].sort().join(',');
+
+      if (sCup === sRec) {
+        sfxSuccess();
+        currentCup = [];
+        state.coins += 15;
+        state.hearts += 10;
+        const prev = state.friendship[animal.id] || 0;
+        state.friendship[animal.id] = prev + 1;
+        animalJumpTimer = 1.2; // Fait sauter l'animal 3D de joie !
+
+        spawnFloatingText("+10 💖 +15 🪙", window.innerWidth / 2 - 40, window.innerHeight / 3);
+
+        if (prev < animal.maxDrinks && state.friendship[animal.id] >= animal.maxDrinks) {
+          document.getElementById('album-dot').style.display = 'block';
+          setTimeout(() => {
+            showNoteModal(animal.icon, `Mot doux de ${animal.name}`, animal.secretNote);
+          }, 650);
+        }
+
+        state.currentAnimalIndex = (state.currentAnimalIndex + 1) % GAME_CONFIG.animals.length;
+        build3DAnimal(GAME_CONFIG.animals[state.currentAnimalIndex]);
         saveGame();
-        renderPantry();
-        renderPlots();
+        renderDock();
+      } else {
+        sfxError();
+        spawnFloatingText("Oups, mauvaise recette !", window.innerWidth / 2 - 70, window.innerHeight / 2);
+        clearCup();
       }
     }
 
-    setInterval(() => {
-      if (plots.some(p => p.state === 'growing')) {
-        renderPlots();
-      }
-    }, 300);
+    function openAlbumModal() {
+      sfxClick();
+      document.getElementById('album-dot').style.display = 'none';
+      const progText = document.getElementById('gift-progress-text');
+      const btnGift = document.getElementById('btn-open-grand-gift');
 
-    /* =========================================================================
-       6. CARNET DES HABITUÉS & MODALES
-       ========================================================================= */
-    function renderAlbum() {
-      const list = document.getElementById('album-list');
-      list.innerHTML = GAME_CONFIG.animals.map(a => {
-        const count = state.friendship[a.id] || 0;
-        const unlocked = count >= a.maxDrinks;
+      if (state.hearts >= GAME_CONFIG.grandGoalHearts) {
+        progText.innerText = "Objectif atteint ! Ton enveloppe est débloquée :";
+        btnGift.style.display = 'inline-block';
+      } else {
+        progText.innerText = `Progression : ${state.hearts} / ${GAME_CONFIG.grandGoalHearts} 💖`;
+        btnGift.style.display = 'none';
+      }
+
+      const containerEl = document.getElementById('album-items');
+      containerEl.innerHTML = GAME_CONFIG.animals.map(a => {
+        const pts = state.friendship[a.id] || 0;
+        const unlocked = pts >= a.maxDrinks;
         return `
-          <div class="album-card">
-            <div class="album-avatar">${a.icon}</div>
-            <div class="album-info">
-              <div class="album-title">${a.name}</div>
-              <div class="album-desc">Amitié : ${Math.min(count, a.maxDrinks)} / ${a.maxDrinks} thés servis</div>
+          <div class="album-item">
+            <div style="font-size:2.1rem;">${a.icon}</div>
+            <div style="flex:1;">
+              <div style="font-weight:800; font-size:0.92rem;">${a.name}</div>
+              <div style="font-size:0.76rem; color:#8c7b6b;">Amitié : ${Math.min(pts, a.maxDrinks)} / ${a.maxDrinks} ⭐</div>
             </div>
-            <button class="btn-note" ${unlocked ? '' : 'disabled'} onclick="readAnimalNote('${a.id}')">
-              ${unlocked ? 'Lire le mot 💌' : '🔒 Secret'}
+            <button class="btn-add-cup" ${unlocked ? '' : 'disabled style="opacity:0.45;"'} onclick="openAnimalSecret('${a.id}')">
+              ${unlocked ? 'Lire 💌' : '🔒'}
             </button>
           </div>
         `;
       }).join('');
+
+      document.getElementById('modal-album').style.display = 'flex';
     }
 
-    function readAnimalNote(animalId) {
+    function openAnimalSecret(id) {
+      const a = GAME_CONFIG.animals.find(x => x.id === id);
+      if (a) showNoteModal(a.icon, `Secret de ${a.name}`, a.secretNote);
+    }
+
+    function showGrandGift() {
+      sfxSuccess();
+      showNoteModal('🎁', GAME_CONFIG.grandGiftTitle, GAME_CONFIG.grandGiftMessage);
+    }
+
+    function showNoteModal(icon, title, body) {
       sfxClick();
-      const animal = GAME_CONFIG.animals.find(a => a.id === animalId);
-      if (animal) openModal(animal.icon, `Mot doux de ${animal.name}`, animal.secretNote);
-    }
-
-    function openGrandGift() {
-      sfxServeSuccess();
-      openModal('🎁', GAME_CONFIG.grandGiftTitle, GAME_CONFIG.grandGiftMessage);
-    }
-
-    function openModal(icon, title, body) {
-      document.getElementById('modal-icon').innerText = icon;
-      document.getElementById('modal-title').innerText = title;
-      document.getElementById('modal-body').innerText = body;
+      document.getElementById('note-icon').innerText = icon;
+      document.getElementById('note-title').innerText = title;
+      document.getElementById('note-body').innerText = body;
       document.getElementById('modal-note').style.display = 'flex';
     }
 
-    function closeModal() {
+    function closeModal(id) {
       sfxClick();
-      document.getElementById('modal-note').style.display = 'none';
-    }
-
-    function switchTab(tabName, btnEl) {
-      sfxClick();
-      document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-      document.getElementById(`tab-${tabName}`).classList.add('active');
-      btnEl.classList.add('active');
-      if (tabName === 'album') document.getElementById('album-dot').style.display = 'none';
+      document.getElementById(id).style.display = 'none';
     }
 
     /* =========================================================================
-       7. DÉTECTION DE MISE À JOUR SERVICE WORKER (STYLE HAY DAY)
+       7. BOUCLE D'ANIMATION 3D & PROJECTION DES ÉTIQUETTES SUR L'ÉCRAN
+       ========================================================================= */
+    function toScreenPosition(worldVec) {
+      const v = worldVec.clone().project(camera);
+      return {
+        x: (v.x * 0.5 + 0.5) * window.innerWidth,
+        y: (-(v.y * 0.5) + 0.5) * window.innerHeight
+      };
+    }
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+      const elapsed = clock.getElapsedTime();
+      const now = Date.now();
+
+      // Oscillation douce des arbres
+      trees.forEach((t, i) => {
+        t.rotation.z = Math.sin(elapsed * 1.6 + i) * 0.035;
+      });
+
+      // Animation de l'animal 3D
+      if (activeAnimalMesh) {
+        if (animalJumpTimer > 0) {
+          animalJumpTimer -= dt;
+          activeAnimalMesh.position.y = Math.abs(Math.sin(elapsed * 14)) * 0.65;
+          activeAnimalMesh.rotation.y += dt * 6;
+        } else {
+          activeAnimalMesh.position.y = Math.abs(Math.sin(elapsed * 2.5)) * 0.06;
+          activeAnimalMesh.rotation.y = Math.sin(elapsed * 1.2) * 0.2;
+        }
+      }
+
+      // Position de la bulle de commande au-dessus de l'animal 3D
+      const bubblePos = toScreenPosition(new THREE.Vector3(-2.5, 2.35, 0.9));
+      const bubbleEl = document.getElementById('client-bubble-wrapper');
+      bubbleEl.style.left = `${bubblePos.x}px`;
+      bubbleEl.style.top = `${bubblePos.y}px`;
+
+      // Croissance 3D en temps réel des cultures
+      plotsData.forEach(plot => {
+        const tagEl = document.getElementById(`plot-tag-${plot.index}`);
+        const screenPos = toScreenPosition(new THREE.Vector3(plot.group.position.x, 1.05, plot.group.position.z));
+        plot.labelEl.style.left = `${screenPos.x}px`;
+        plot.labelEl.style.top = `${screenPos.y}px`;
+
+        if (plot.state === 'empty') {
+          tagEl.className = 'plot-tag';
+          tagEl.innerText = 'Planter 🌱';
+        } else {
+          const ing = GAME_CONFIG.ingredients[plot.crop];
+          const sec = (now - plot.plantedAt) / 1000;
+          const progress = Math.min(1, sec / plot.duration);
+
+          // Mise à l'échelle 3D progressive de la plante
+          const scale = 0.25 + progress * 0.85;
+          plot.plantHolder.scale.setScalar(scale);
+
+          if (progress >= 1) {
+            plot.state = 'ready';
+            plot.plantHolder.position.y = 0.25 + Math.abs(Math.sin(elapsed * 5)) * 0.12;
+            tagEl.className = 'plot-tag ready';
+            tagEl.innerText = `${ing.icon} Récolter !`;
+          } else {
+            const rem = Math.ceil(plot.duration - sec);
+            tagEl.className = 'plot-tag';
+            tagEl.innerText = `${ing.icon} ${rem}s`;
+          }
+        }
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      aspect = window.innerWidth / window.innerHeight;
+      camera.left = -viewSize * aspect / 2;
+      camera.right = viewSize * aspect / 2;
+      camera.top = viewSize / 2;
+      camera.bottom = -viewSize / 2;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    /* =========================================================================
+       8. SERVICE WORKER : MISE À JOUR AUTOMATIQUE
        ========================================================================= */
     let newWorker = null;
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').then(reg => {
-        reg.update(); // Force la vérification au démarrage de l'application
+        reg.update();
         reg.addEventListener('updatefound', () => {
           newWorker = reg.installing;
           newWorker.addEventListener('statechange', () => {
@@ -1009,14 +1215,11 @@
       });
     }
 
-    // Initialisation au lancement
-    updateHeaderUI();
-    renderClient();
-    renderPantry();
-    renderCup();
-    renderSeedSelector();
-    renderPlots();
-    renderAlbum();
+    // Lancement
+    build3DAnimal(GAME_CONFIG.animals[state.currentAnimalIndex]);
+    updateHUD();
+    renderDock();
+    animate();
   </script>
 </body>
 </html>
