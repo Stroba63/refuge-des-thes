@@ -64,6 +64,25 @@
       gap: 6px;
       box-shadow: 0 4px 0 rgba(0,0,0,0.15);
     }
+    .xp-bar-bg {
+      width: 56px;
+      height: 8px;
+      background: #e2d4c3;
+      border-radius: 99px;
+      overflow: hidden;
+      border: 1px solid var(--wood-border);
+    }
+    .xp-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #52b788, #f4b942);
+      transition: width 0.3s ease;
+    }
+    .xp-subtext {
+      font-size: 0.7rem;
+      color: var(--wood-dark);
+      font-weight: 800;
+    }
     .icon-btn {
       background: rgba(253, 248, 242, 0.95);
       border: 3px solid var(--wood-border);
@@ -141,6 +160,18 @@
       font-weight: 800;
       box-shadow: 0 3px 8px rgba(0,0,0,0.25);
     }
+    .plot-tag.dry-alert {
+      background: #e76f51;
+      color: #ffffff;
+      font-size: 0.76rem;
+      font-weight: 800;
+      box-shadow: 0 3px 8px rgba(231, 111, 81, 0.45);
+      animation: pulseDry 1.2s ease-in-out infinite;
+    }
+    @keyframes pulseDry {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
 
     /* BARRE DE CONTRÔLE BASSE (GRAINES & COMPTOIR DE THÉ) */
     .hud-bottom {
@@ -190,6 +221,11 @@
       border-color: var(--green-main);
       box-shadow: 0 3px 0 var(--green-main);
       transform: translateY(-2px);
+    }
+    .seed-card.locked {
+      opacity: 0.55;
+      background: #ede6de;
+      cursor: not-allowed;
     }
     .seed-stock {
       position: absolute;
@@ -320,7 +356,12 @@
   <!-- BARRE DU HAUT -->
   <div class="hud-top">
     <div class="hud-group">
-      <div class="pill"><span id="ui-sun-icon">☀️</span> Niv. <span id="ui-level">1</span></div>
+      <div class="pill" title="Niveau d'Herboriste & Expérience (XP)">
+        <span id="ui-sun-icon">☀️</span>
+        <span>Niv. <span id="ui-level">1</span></span>
+        <div class="xp-bar-bg"><div class="xp-bar-fill" id="ui-xp-bar"></div></div>
+        <span class="xp-subtext" id="ui-xp-text">0/45</span>
+      </div>
       <div class="pill">🪙 <span id="ui-coins">0</span></div>
       <div class="pill">⭐ <span id="ui-hearts">0</span></div>
     </div>
@@ -411,47 +452,51 @@
        1. CONFIGURATION ET TEXTES DU JEU
        ========================================================================= */
     const GAME_CONFIG = {
-      version: "v2.5.1",
-      grandGoalHearts: 60,
+      version: "v2.6.0",
+      grandGoalHearts: 80,
       grandGiftTitle: "Diplôme de Maître Herboriste 🏆",
       grandGiftMessage: "Félicitations ! Grâce à ton savoir-faire et tes récoltes, le Refuge des Thés est devenu l'adresse la plus réputée de la vallée. Tous les habitants de la forêt viennent goûter tes infusions artisanales !",
       
       ingredients: {
-        camomille: { id: "camomille", name: "Camomille", icon: "🌼", growTime: 5, color: 0xf4d35e },
-        menthe:    { id: "menthe",    name: "Menthe",    icon: "🍃", growTime: 6, color: 0x52b788 },
-        baies:     { id: "baies",     name: "Baies",     icon: "🫐", growTime: 8, color: 0x7b2cbf },
-        miel:      { id: "miel",      name: "Miel",      icon: "🍯", growTime: 10, color: 0xf4a261 },
-        lavande:   { id: "lavande",   name: "Lavande",   icon: "💜", growTime: 7, color: 0x9d4edd },
-        citron:    { id: "citron",    name: "Citron",    icon: "🍋", growTime: 9, color: 0xffea00 }
+        camomille: { id: "camomille", name: "Camomille", icon: "🌼", growTime: 22, minLevel: 1, color: 0xf4d35e },
+        menthe:    { id: "menthe",    name: "Menthe",    icon: "🍃", growTime: 28, minLevel: 1, color: 0x52b788 },
+        baies:     { id: "baies",     name: "Baies",     icon: "🫐", growTime: 34, minLevel: 1, color: 0x7b2cbf },
+        miel:      { id: "miel",      name: "Miel",      icon: "🍯", growTime: 40, minLevel: 1, color: 0xf4a261 },
+        lavande:   { id: "lavande",   name: "Lavande",   icon: "💜", growTime: 36, minLevel: 2, color: 0x9d4edd },
+        citron:    { id: "citron",    name: "Citron",    icon: "🍋", growTime: 45, minLevel: 3, color: 0xffea00 }
       },
 
       shopUpgrades: [
         {
-          id: "lemonTree",
-          name: "Citronnier du Verger 3D",
-          icon: "🍋",
-          cost: 25,
-          desc: "Plante un grand citronnier 3D près du chalet qui produit +2 🍋 Citrons toutes les 8s !"
-        },
-        {
           id: "extraPlots",
           name: "Extension du Potager (9 Parcelles)",
           icon: "🌱",
-          cost: 40,
-          desc: "Ajoute 3 nouvelles parcelles de terre 3D et agrandit la clôture en bois !"
+          cost: 50,
+          minLevel: 2,
+          desc: "Débloque 3 nouvelles parcelles de terre 3D et agrandit la clôture en bois !"
+        },
+        {
+          id: "lemonTree",
+          name: "Citronnier du Verger 3D",
+          icon: "🍋",
+          cost: 70,
+          minLevel: 3,
+          desc: "Plante un grand citronnier 3D près du chalet qui produit +2 🍋 Citrons toutes les 32s !"
         },
         {
           id: "koiPond",
           name: "Bassin Carpes Koï & Lanterne Zen",
           icon: "🐟",
-          cost: 55,
-          desc: "Ajoute 3 carpes Koï animées + lanterne en pierre au bassin (+5 🪙 par thé servi) !"
+          cost: 95,
+          minLevel: 3,
+          desc: "Ajoute 3 carpes Koï animées + lanterne en pierre au bassin (+8 🪙 par thé servi) !"
         },
         {
           id: "royalHive",
           name: "Ruche Royale & Engrais Bio",
           icon: "🐝",
-          cost: 75,
+          cost: 130,
+          minLevel: 4,
           desc: "Ajoute une 2e ruche dorée et accélère de +30% toutes les récoltes de l'île !"
         }
       ],
@@ -463,7 +508,8 @@
           icon: "🐰",
           color: 0xffffff,
           earColor: 0xffcad4,
-          maxDrinks: 2,
+          minLevel: 1,
+          maxDrinks: 3,
           recipe: ["camomille", "miel"],
           secretNote: "Astuce de Pompon : La camomille cueillie fraîchement au jardin avec une cuillère de miel doré donne l'infusion la plus apaisante après une longue balade dans les prés ! 🐰🌼"
         },
@@ -473,7 +519,8 @@
           icon: "🦊",
           color: 0xe76f51,
           earColor: 0x264653,
-          maxDrinks: 2,
+          minLevel: 1,
+          maxDrinks: 3,
           recipe: ["baies", "menthe"],
           secretNote: "Carnet de Roux : Quand j'explore les sentiers de la forêt du Nord, rien ne vaut ton thé aux baies sauvages et à la menthe fraîche pour repartir à l'aventure ! 🦊🍃"
         },
@@ -483,7 +530,8 @@
           icon: "🦔",
           color: 0x8d6e63,
           earColor: 0x5d4037,
-          maxDrinks: 2,
+          minLevel: 1,
+          maxDrinks: 3,
           recipe: ["baies", "miel"],
           secretNote: "Recette de Piquot : Les baies bien mûres associées au miel de la vallée réchauffent instantanément lors des fraîches soirées d'automne sous les chênes. 🦔🍯"
         },
@@ -493,7 +541,8 @@
           icon: "🐱",
           color: 0xf6bd60,
           earColor: 0xf28482,
-          maxDrinks: 2,
+          minLevel: 1,
+          maxDrinks: 3,
           recipe: ["camomille", "menthe"],
           secretNote: "Anecdote de Mochi : Le doux bruit des ailes du moulin et le parfum de la camomille à la menthe font de ta terrasse en bois le meilleur endroit de l'île pour faire la sieste ! 🐱☀️"
         },
@@ -503,7 +552,8 @@
           icon: "🐿️",
           color: 0xd4a373,
           earColor: 0x8d5b4c,
-          maxDrinks: 2,
+          minLevel: 2,
+          maxDrinks: 3,
           recipe: ["lavande", "miel"],
           secretNote: "Astuce de Noisette : Entre deux sauts dans les grands chênes, une tasse fumante à la lavande et au miel parfume toute la clairière ! 🐿️💜"
         },
@@ -513,7 +563,8 @@
           icon: "🦉",
           color: 0x8d6e63,
           earColor: 0xfaedcd,
-          maxDrinks: 2,
+          minLevel: 3,
+          maxDrinks: 3,
           recipe: ["citron", "menthe"],
           secretNote: "Sagesse de Barnabé : Pour rester éveillé à observer les étoiles et les lucioles, rien n'égale la fraîcheur d'une infusion au citron et à la menthe du jardin ! 🦉🍋"
         }
@@ -687,22 +738,34 @@
     function loadSave() {
       const raw = localStorage.getItem(STORAGE_KEY);
       const def = {
-        coins: 35,
+        coins: 30,
         hearts: 0,
-        inventory: { camomille: 2, menthe: 2, baies: 1, miel: 2, lavande: 1, citron: 1 },
+        level: 1,
+        xp: 0,
+        inventory: { camomille: 1, menthe: 1, baies: 1, miel: 1, lavande: 0, citron: 0 },
         friendship: {},
         upgrades: {},
         currentAnimalIndex: 0
       };
       let data = raw ? JSON.parse(raw) : def;
       if (!data.upgrades) data.upgrades = {};
+      if (typeof data.level !== 'number' || data.level < 1) {
+        data.level = Math.max(1, Math.floor((data.hearts || 0) / 25) + 1);
+      }
+      if (typeof data.xp !== 'number' || data.xp < 0) {
+        data.xp = 0;
+      }
       Object.keys(GAME_CONFIG.ingredients).forEach(k => {
-        if (typeof data.inventory[k] !== 'number') data.inventory[k] = 1;
+        if (typeof data.inventory[k] !== 'number') data.inventory[k] = 0;
       });
       GAME_CONFIG.animals.forEach(a => {
         if (typeof data.friendship[a.id] !== 'number') data.friendship[a.id] = 0;
       });
       if (data.currentAnimalIndex >= GAME_CONFIG.animals.length) data.currentAnimalIndex = 0;
+      // S'assurer que l'animal actif correspond au niveau actuel du joueur
+      if ((GAME_CONFIG.animals[data.currentAnimalIndex].minLevel || 1) > data.level) {
+        data.currentAnimalIndex = 0;
+      }
       return data;
     }
 
@@ -1318,7 +1381,7 @@
       }
     }
 
-    // 4.4 L'Animal Client 3D détaillé (Pattes, Museau, Queue, Écharpe & Animation de marche depuis le ponton)
+    // 4.4 Animaux 3D détaillés (Client au comptoir + Animaux qui se baladent dans la ferme !)
     const animalAnchor = new THREE.Group();
     animalAnchor.position.set(-2.5, 0.1, 0.9);
     scene.add(animalAnchor);
@@ -1328,10 +1391,9 @@
     let animalJumpTimer = 0;
     let animalWalkProgress = 1; // 0 = sur le ponton (-8.0), 1 = arrivé au comptoir (-2.5)
 
-    function build3DAnimal(animalCfg, walkFromDock = false) {
-      if (activeAnimalMesh) animalAnchor.remove(activeAnimalMesh);
+    function createAnimalModel(animalCfg, userDataPayload) {
       const group = new THREE.Group();
-      activeAnimalLegs = [];
+      const legs = [];
 
       const bodyMat = new THREE.MeshLambertMaterial({ color: animalCfg.color });
       const earMat = new THREE.MeshLambertMaterial({ color: animalCfg.earColor });
@@ -1347,7 +1409,7 @@
         leg.position.set(lx, ly, lz);
         leg.castShadow = true;
         group.add(leg);
-        activeAnimalLegs.push(leg);
+        legs.push(leg);
       });
 
       // Corps dodu
@@ -1383,7 +1445,7 @@
       nose.position.set(0, 1.25, 0.72);
       group.add(nose);
 
-      // Yeux expressifs avec reflets blancs
+      // Yeux expressifs
       const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.068, 8, 8), eyeMat);
       eyeL.position.set(-0.18, 1.35, 0.58);
       const eyeR = eyeL.clone();
@@ -1440,24 +1502,106 @@
         }
       }
 
-      // Zone cliquable invisible pour faciliter le toucher sur mobile
+      // Zone cliquable invisible
       const hitBox = new THREE.Mesh(
         new THREE.CylinderGeometry(0.9, 0.9, 2.2, 8),
         new THREE.MeshBasicMaterial({ visible: false })
       );
       hitBox.position.y = 1.1;
-      hitBox.userData = { type: 'client' };
+      hitBox.userData = userDataPayload;
       group.add(hitBox);
 
-      animalAnchor.add(group);
-      activeAnimalMesh = group;
-      animalWalkProgress = walkFromDock ? 0 : 1;
+      return { group, legs };
     }
 
-    // 4.5 Les Parcelles de Potager 3D (6 de base + 3 déblocables dans la boutique = 9 !)
+    // Réseau de points de promenade autour de la ferme (évite le chalet et l'intérieur clôturé du potager)
+    const FARM_WAYPOINTS = [
+      { x: -5.2, z: 2.3,  neighbors: [1, 10] },      // 0: Près des cerisiers Ouest
+      { x: -5.0, z: 5.2,  neighbors: [0, 2] },       // 1: Clairière Sud-Ouest (près des baies)
+      { x: -1.8, z: 5.8,  neighbors: [1, 3, 9] },    // 2: Sentier Sud-Ouest
+      { x: 1.8,  z: 5.9,  neighbors: [2, 4, 9] },    // 3: Prairie Sud devant le potager
+      { x: 5.2,  z: 5.9,  neighbors: [3, 5] },       // 4: Prairie Sud-Est
+      { x: 8.6,  z: 4.2,  neighbors: [4, 6] },       // 5: Coin Sud-Est
+      { x: 9.2,  z: -1.2, neighbors: [5, 7] },       // 6: Prairie Est derrière les ruches
+      { x: 5.4,  z: -3.5, neighbors: [6, 8] },       // 7: Sentier Nord-Est devant le moulin
+      { x: 1.2,  z: -3.6, neighbors: [7, 10, 11] },  // 8: Près du puits au Nord
+      { x: -0.2, z: 2.8,  neighbors: [2, 3, 10] },   // 9: Bas de l'allée centrale
+      { x: -0.2, z: -0.6, neighbors: [0, 8, 9] },    // 10: Allée centrale entre chalet et potager
+      { x: -3.4, z: -3.4, neighbors: [8, 10] }       // 11: Bord du bassin de la cascade
+    ];
+
+    const roamingAnimals = [];
+    GAME_CONFIG.animals.forEach((cfg, idx) => {
+      const built = createAnimalModel(cfg, { type: 'roamer', animalIndex: idx });
+      built.group.scale.setScalar(0.84); // Légèrement plus petits pour les promeneurs
+      const startWpIdx = (idx * 2) % FARM_WAYPOINTS.length;
+      const wp = FARM_WAYPOINTS[startWpIdx];
+      const nextWpIdx = wp.neighbors[0];
+      const anchor = new THREE.Group();
+      anchor.position.set(wp.x, 0.1, wp.z);
+      anchor.add(built.group);
+      scene.add(anchor);
+
+      roamingAnimals.push({
+        index: idx,
+        cfg: cfg,
+        anchor: anchor,
+        mesh: built.group,
+        legs: built.legs,
+        currentWp: startWpIdx,
+        targetWp: nextWpIdx,
+        speed: 0.95 + (idx % 3) * 0.18,
+        pauseTimer: (idx % 3) * 0.8,
+        jumpTimer: 0,
+        walkCycle: idx * 1.7
+      });
+    });
+
+    function syncRoamingAnimals() {
+      roamingAnimals.forEach(r => {
+        // Tous les animaux autres que le client actif au comptoir se baladent dans la ferme !
+        r.anchor.visible = (r.index !== state.currentAnimalIndex);
+      });
+    }
+
+    function build3DAnimal(animalCfg, walkFromDock = false) {
+      if (activeAnimalMesh) animalAnchor.remove(activeAnimalMesh);
+      const built = createAnimalModel(animalCfg, { type: 'client' });
+      activeAnimalMesh = built.group;
+      activeAnimalLegs = built.legs;
+      animalAnchor.add(activeAnimalMesh);
+      animalWalkProgress = walkFromDock ? 0 : 1;
+      syncRoamingAnimals();
+    }
+
+    // 4.5 Les Parcelles de Potager 3D avec Système d'Humidité du Sol (Mouillé -> Sèche avec le temps)
     const plotsData = [];
     const interactableMeshes = [];
     const plotLabelsContainer = document.getElementById('plot-labels');
+
+    // Couleurs de terre : sèche (claire/poussiéreuse) vs mouillée (riche/foncée)
+    const SOIL_DRY_COLOR = new THREE.Color(0xb58860);
+    const SOIL_WET_COLOR = new THREE.Color(0x3a2010);
+    const SOIL_DRY_TIME = 25; // Secondes pour que le sol sèche complètement
+
+    // Gouttes d'eau 3D animées lors de l'arrosage
+    const waterDrops3D = [];
+    const waterDropMat = new THREE.MeshBasicMaterial({ color: 0x00b4d8 });
+
+    function spawnWaterSplash3D(x, z) {
+      for (let i = 0; i < 6; i++) {
+        const drop = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), waterDropMat);
+        const angle = (i / 6) * Math.PI * 2 + Math.random() * 0.4;
+        const rad = 0.2 + Math.random() * 0.45;
+        drop.position.set(x + Math.cos(angle) * rad, 1.3 + Math.random() * 0.5, z + Math.sin(angle) * rad);
+        scene.add(drop);
+        waterDrops3D.push({
+          mesh: drop,
+          vy: -2.2 - Math.random() * 1.2,
+          life: 0.65 + Math.random() * 0.25
+        });
+      }
+    }
 
     const plotCoords = [
       { x: 1.8, z: -1.2 }, { x: 4.1, z: -1.2 },
@@ -1479,9 +1623,10 @@
       border.receiveShadow = true;
       plotGroup.add(border);
 
+      const soilMat = new THREE.MeshLambertMaterial({ color: SOIL_DRY_COLOR.clone() });
       const soil = new THREE.Mesh(
         new THREE.BoxGeometry(1.6, 0.26, 1.6),
-        new THREE.MeshLambertMaterial({ color: 0x5e3a24 })
+        soilMat
       );
       soil.position.y = 0.12;
       soil.receiveShadow = true;
@@ -1511,7 +1656,8 @@
         unlocked: unlocked,
         state: 'empty', // empty, growing, ready
         crop: null,
-        plantedAt: 0,
+        moisture: 0.45, // Commence légèrement humide puis sèche avec le temps
+        wateredElapsed: 0, // Temps de pousse accumulé uniquement quand le sol est humide !
         duration: 0,
         group: plotGroup,
         soilMesh: soil,
@@ -1704,8 +1850,8 @@
       group: hiveGroup,
       labelPos: new THREE.Vector3(initialHiveX, 2.1, 0.8),
       labelEl: createStationLabel('hive', '🐝 Ruche'),
-      readyAt: Date.now() + 5000,
-      cooldown: 9000
+      readyAt: Date.now() + 12000,
+      cooldown: 36000
     };
 
     // B) 🫐 Le Bosquet de Buissons à Baies Sauvages 3D (Sud-Ouest)
@@ -1748,8 +1894,8 @@
       group: berryStationGroup,
       labelPos: new THREE.Vector3(-3.8, 1.65, 3.9),
       labelEl: createStationLabel('berries', '🫐 Buissons'),
-      readyAt: Date.now() + 4000,
-      cooldown: 8000
+      readyAt: Date.now() + 10000,
+      cooldown: 30000
     };
 
     // C) 🪣 Le Puits en Pierre 3D (Arrose tout le potager d'un coup !)
@@ -1803,8 +1949,8 @@
       group: wellGroup,
       labelPos: new THREE.Vector3(-0.3, 2.35, -3.1),
       labelEl: createStationLabel('well', '🪣 Puits'),
-      readyAt: Date.now() + 2000,
-      cooldown: 10000
+      readyAt: Date.now() + 1000,
+      cooldown: 11000
     };
 
     // D) 🍋 Le Citronnier du Verger 3D (Déblocable dans la Boutique)
@@ -1852,8 +1998,8 @@
       group: lemonTreeGroup,
       labelPos: new THREE.Vector3(-5.8, 2.85, -0.8),
       labelEl: lemonLabelEl,
-      readyAt: Date.now() + 4000,
-      cooldown: 8000,
+      readyAt: Date.now() + 12000,
+      cooldown: 32000,
       requiresUpgrade: 'lemonTree'
     };
 
@@ -1951,6 +2097,15 @@
           serveTea();
           return;
         }
+        if (data && data.type === 'roamer') {
+          const roamer = roamingAnimals[data.animalIndex];
+          if (roamer && roamer.anchor.visible) {
+            sfxClick();
+            roamer.jumpTimer = 0.85;
+            spawnFloatingText(`${roamer.cfg.icon} ${roamer.cfg.name} se balade !`, clientX - 60, clientY - 25, '#52b788');
+            return;
+          }
+        }
       }
     }
 
@@ -1969,20 +2124,22 @@
       }
 
       const speedMult = (state.upgrades && state.upgrades.royalHive) ? 0.7 : 1;
-      const bonusQty = (state.upgrades && state.upgrades.royalHive) ? 3 : 2;
+      const bonusQty = (state.upgrades && state.upgrades.royalHive) ? 2 : 1;
 
       if (stationId === 'hive') {
         sfxHarvest();
         state.inventory.miel = (state.inventory.miel || 0) + bonusQty;
         st.readyAt = now + st.cooldown * speedMult;
-        spawnFloatingText(`+${bonusQty} 🍯 Miel de la ruche !`, screenX, screenY, '#f4b942');
+        spawnFloatingText(`+${bonusQty} 🍯 Miel (+8 XP)`, screenX, screenY, '#f4b942');
+        addXP(8);
         saveGame();
         renderDock();
       } else if (stationId === 'berries') {
         sfxHarvest();
         state.inventory.baies = (state.inventory.baies || 0) + bonusQty;
         st.readyAt = now + st.cooldown * speedMult;
-        spawnFloatingText(`+${bonusQty} 🫐 Baies sauvages !`, screenX, screenY, '#7b2cbf');
+        spawnFloatingText(`+${bonusQty} 🫐 Baies (+8 XP)`, screenX, screenY, '#7b2cbf');
+        addXP(8);
         saveGame();
         renderDock();
       } else if (stationId === 'lemons') {
@@ -1990,29 +2147,22 @@
         sfxHarvest();
         state.inventory.citron = (state.inventory.citron || 0) + bonusQty;
         st.readyAt = now + st.cooldown * speedMult;
-        spawnFloatingText(`+${bonusQty} 🍋 Citrons frais !`, screenX, screenY, '#ffbe0b');
+        spawnFloatingText(`+${bonusQty} 🍋 Citrons (+10 XP)`, screenX, screenY, '#ffbe0b');
+        addXP(10);
         saveGame();
         renderDock();
       } else if (stationId === 'well') {
         sfxSuccess();
         st.readyAt = now + st.cooldown;
-        let watered = 0;
         plotsData.forEach(p => {
-          if (p.state === 'growing') {
-            p.plantedAt -= (p.duration * 1000) * 0.5;
-            watered++;
+          if (p.unlocked) {
+            p.moisture = 1.0; // Mouille la terre à 100% (devient foncée)
+            spawnWaterSplash3D(p.group.position.x, p.group.position.z);
           }
         });
-        spawnFloatingText(
-          watered > 0 ? '🌧️ Potager arrosé (+50% vitesse) !' : '🪣 Eau fraîche puisée (+5 🪙) !',
-          screenX,
-          screenY,
-          '#0096c7'
-        );
-        if (watered === 0) {
-          state.coins += 5;
-          saveGame();
-        }
+        addXP(6);
+        saveGame();
+        spawnFloatingText('🌧️ Potager arrosé (Terre 100% mouillée +6 XP) !', screenX - 70, screenY, '#0096c7');
       }
     }
 
@@ -2024,45 +2174,114 @@
       plot.lastClickTime = now;
 
       if (plot.state === 'empty') {
-        sfxPlant();
         const ing = GAME_CONFIG.ingredients[selectedSeed];
+        if ((ing.minLevel || 1) > getFarmLevel()) {
+          sfxError();
+          spawnFloatingText(`🔒 Débloqué au Niveau ${ing.minLevel} !`, screenX - 60, screenY, '#e07a5f');
+          return;
+        }
+        sfxPlant();
         const speedMult = (state.upgrades && state.upgrades.royalHive) ? 0.7 : 1;
         plot.state = 'growing';
         plot.crop = selectedSeed;
-        plot.plantedAt = Date.now();
-        plot.duration = Math.max(2, Math.round(ing.growTime * speedMult));
+        plot.wateredElapsed = 0;
+        plot.duration = Math.max(8, Math.round(ing.growTime * speedMult));
         rebuildPlotPlant3D(plot);
-        spawnFloatingText(`🌱 ${ing.name}`, screenX, screenY, '#52b788');
+        addXP(4);
+        saveGame();
+        const dryHint = plot.moisture <= 0.08 ? ' (💧 Pense à arroser au puits !)' : ' (+4 XP)';
+        spawnFloatingText(`🌱 ${ing.name}${dryHint}`, screenX - 40, screenY, '#52b788');
       } else if (plot.state === 'ready') {
         sfxHarvest();
         const ing = GAME_CONFIG.ingredients[plot.crop];
-        state.inventory[plot.crop] = (state.inventory[plot.crop] || 0) + 2;
-        spawnFloatingText(`+2 ${ing.icon}`, screenX, screenY, '#f4b942');
+        const qty = (state.upgrades && state.upgrades.royalHive) ? 2 : 1;
+        state.inventory[plot.crop] = (state.inventory[plot.crop] || 0) + qty;
+        spawnFloatingText(`+${qty} ${ing.icon} (+8 XP)`, screenX, screenY, '#f4b942');
         plot.state = 'empty';
         plot.crop = null;
+        plot.wateredElapsed = 0;
         rebuildPlotPlant3D(plot);
+        addXP(8);
         saveGame();
         renderDock();
       } else {
         sfxClick();
+        if (plot.moisture <= 0.02) {
+          spawnFloatingText('💧 Sol sec ! Les plantes ne poussent plus : arrose au Puits 🪣', screenX - 110, screenY, '#e76f51');
+        } else {
+          const rem = Math.ceil(plot.duration - plot.wateredElapsed);
+          spawnFloatingText(`🌱 Pousse (${rem}s • Humidité ${Math.round(plot.moisture * 100)}%)`, screenX - 70, screenY, '#52b788');
+        }
       }
     }
 
     /* =========================================================================
-       6. LOGIQUE DU COMPTOIR DE THÉ, BOUTIQUE 3D ET CARNET DES HABITUÉS
+       6. SYSTÈME DE NIVEAUX (XP), COMPTOIR DE THÉ, BOUTIQUE 3D ET CARNET
        ========================================================================= */
     function getFarmLevel() {
-      return Math.floor((state.hearts || 0) / 20) + 1;
+      return state.level || 1;
+    }
+
+    function getXpNeeded(lvl) {
+      return 35 + (lvl - 1) * 25;
+    }
+
+    function addXP(amount) {
+      state.xp = (state.xp || 0) + amount;
+      let leveledUp = false;
+      while (state.xp >= getXpNeeded(state.level)) {
+        state.xp -= getXpNeeded(state.level);
+        state.level = (state.level || 1) + 1;
+        state.coins += 25;
+        leveledUp = true;
+      }
+      if (leveledUp) {
+        sfxSuccess();
+        const newLvl = state.level;
+        let unlockMsg = '';
+        if (newLvl === 2) unlockMsg = ' • 💜 Lavande, 🐿️ Écureuil & Extension débloqués !';
+        else if (newLvl === 3) unlockMsg = ' • 🍋 Citron, 🦉 Hibou & Citronnier débloqués !';
+        else if (newLvl === 4) unlockMsg = ' • 🐝 Ruche Royale débloquée !';
+        setTimeout(() => {
+          spawnFloatingText(
+            `🎉 NIVEAU ${newLvl} ATTEINT (+25 🪙)${unlockMsg}`,
+            Math.max(20, window.innerWidth / 2 - 140),
+            window.innerHeight / 4,
+            '#f4b942'
+          );
+        }, 250);
+        renderDock();
+      }
+    }
+
+    function pickNextAnimalIndex() {
+      const lvl = getFarmLevel();
+      const total = GAME_CONFIG.animals.length;
+      for (let step = 1; step <= total; step++) {
+        const cand = (state.currentAnimalIndex + step) % total;
+        if ((GAME_CONFIG.animals[cand].minLevel || 1) <= lvl) {
+          return cand;
+        }
+      }
+      return 0;
     }
 
     function updateHUD() {
-      document.getElementById('ui-level').innerText = getFarmLevel();
+      const lvl = getFarmLevel();
+      const needed = getXpNeeded(lvl);
+      const curXp = Math.min(needed, state.xp || 0);
+      document.getElementById('ui-level').innerText = lvl;
+      const xpBar = document.getElementById('ui-xp-bar');
+      if (xpBar) xpBar.style.width = `${Math.round((curXp / needed) * 100)}%`;
+      const xpTxt = document.getElementById('ui-xp-text');
+      if (xpTxt) xpTxt.innerText = `${curXp}/${needed}`;
+
       document.getElementById('ui-coins').innerText = state.coins;
       document.getElementById('ui-hearts').innerText = state.hearts;
       document.getElementById('ui-version').innerText = GAME_CONFIG.version;
 
       const canBuyAny = GAME_CONFIG.shopUpgrades.some(
-        u => !(state.upgrades && state.upgrades[u.id]) && state.coins >= u.cost
+        u => !(state.upgrades && state.upgrades[u.id]) && state.coins >= u.cost && lvl >= (u.minLevel || 1)
       );
       document.getElementById('shop-dot').style.display = canBuyAny ? 'block' : 'none';
 
@@ -2075,10 +2294,15 @@
 
     function openShopModal() {
       sfxClick();
+      const lvl = getFarmLevel();
       const containerEl = document.getElementById('shop-items');
       containerEl.innerHTML = GAME_CONFIG.shopUpgrades.map(u => {
         const owned = !!(state.upgrades && state.upgrades[u.id]);
-        const canAfford = state.coins >= u.cost;
+        const levelOk = lvl >= (u.minLevel || 1);
+        const canAfford = state.coins >= u.cost && levelOk;
+        let btnLabel = `${u.cost} 🪙`;
+        if (owned) btnLabel = 'Acquis ✅';
+        else if (!levelOk) btnLabel = `🔒 Niv.${u.minLevel}`;
         return `
           <div class="album-item">
             <div style="font-size:2.1rem;">${u.icon}</div>
@@ -2089,7 +2313,7 @@
             <button class="btn-add-cup"
               ${owned || !canAfford ? 'disabled style="opacity:0.5;"' : ''}
               onclick="buyUpgrade('${u.id}')">
-              ${owned ? 'Acquis ✅' : `${u.cost} 🪙`}
+              ${btnLabel}
             </button>
           </div>
         `;
@@ -2100,7 +2324,7 @@
     function buyUpgrade(upgradeId) {
       const upg = GAME_CONFIG.shopUpgrades.find(u => u.id === upgradeId);
       if (!upg || (state.upgrades && state.upgrades[upgradeId])) return;
-      if (state.coins < upg.cost) {
+      if (getFarmLevel() < (upg.minLevel || 1) || state.coins < upg.cost) {
         sfxError();
         return;
       }
@@ -2112,8 +2336,8 @@
       if (upgradeId === 'lemonTree') {
         lemonTreeGroup.visible = true;
         specialStations.lemons.labelEl.style.display = 'block';
-        specialStations.lemons.readyAt = Date.now() + 2000;
-        state.inventory.citron = (state.inventory.citron || 0) + 2;
+        specialStations.lemons.readyAt = Date.now() + 4000;
+        state.inventory.citron = (state.inventory.citron || 0) + 1;
       } else if (upgradeId === 'extraPlots') {
         plotsData.forEach(p => {
           if (p.extra) {
@@ -2130,22 +2354,25 @@
         koiDecorGroup.visible = true;
       } else if (upgradeId === 'royalHive') {
         royalHiveGroup.visible = true;
-        state.inventory.miel = (state.inventory.miel || 0) + 2;
+        state.inventory.miel = (state.inventory.miel || 0) + 1;
       }
 
+      addXP(15);
       saveGame();
       renderDock();
       openShopModal();
-      spawnFloatingText(`✨ ${upg.name} construit !`, window.innerWidth / 2 - 80, window.innerHeight / 3, '#52b788');
+      spawnFloatingText(`✨ ${upg.name} construit (+15 XP) !`, window.innerWidth / 2 - 90, window.innerHeight / 3, '#52b788');
     }
 
     function renderDock() {
+      const lvl = getFarmLevel();
       const row = document.getElementById('seeds-row');
       row.innerHTML = Object.values(GAME_CONFIG.ingredients).map(ing => {
         const count = state.inventory[ing.id] || 0;
+        const locked = (ing.minLevel || 1) > lvl;
         return `
-          <div class="seed-card ${selectedSeed === ing.id ? 'active' : ''}" onclick="selectSeed('${ing.id}')">
-            <span class="seed-stock">x${count}</span>
+          <div class="seed-card ${selectedSeed === ing.id ? 'active' : ''} ${locked ? 'locked' : ''}" onclick="selectSeed('${ing.id}')">
+            <span class="seed-stock">${locked ? `🔒N.${ing.minLevel}` : `x${count}`}</span>
             <div style="font-size:1.35rem;">${ing.icon}</div>
             <div style="font-size:0.72rem; font-weight:800;">${ing.name}</div>
           </div>
@@ -2159,6 +2386,12 @@
     }
 
     function selectSeed(id) {
+      const ing = GAME_CONFIG.ingredients[id];
+      if ((ing.minLevel || 1) > getFarmLevel()) {
+        sfxError();
+        spawnFloatingText(`🔒 Débloqué au Niveau ${ing.minLevel} !`, window.innerWidth / 2 - 75, window.innerHeight - 160, '#e07a5f');
+        return;
+      }
       sfxClick();
       selectedSeed = id;
       renderDock();
@@ -2172,7 +2405,7 @@
       }
       if ((state.inventory[selectedSeed] || 0) <= 0) {
         sfxError();
-        spawnFloatingText("Plante-la d'abord dans un carré 3D 🌱", ev.clientX - 90, ev.clientY - 25);
+        spawnFloatingText("Plante-la ou récolte-la d'abord dans la ferme 🌱", ev.clientX - 110, ev.clientY - 25);
         return;
       }
       sfxClick();
@@ -2204,22 +2437,15 @@
       if (sCup === sRec) {
         sfxSuccess();
         currentCup = [];
-        const prevLevel = getFarmLevel();
-        const coinReward = 15 + ((state.upgrades && state.upgrades.koiPond) ? 5 : 0);
+        const coinReward = 14 + ((state.upgrades && state.upgrades.koiPond) ? 8 : 0);
         state.coins += coinReward;
         state.hearts += 10;
-        const newLevel = getFarmLevel();
         const prev = state.friendship[animal.id] || 0;
         state.friendship[animal.id] = prev + 1;
         animalJumpTimer = 1.2; // Fait sauter l'animal 3D de joie !
 
-        spawnFloatingText(`+10 ⭐ +${coinReward} 🪙`, window.innerWidth / 2 - 40, window.innerHeight / 3);
-        if (newLevel > prevLevel) {
-          state.coins += 20;
-          setTimeout(() => {
-            spawnFloatingText(`🎉 Niveau ${newLevel} atteint (+20 🪙) !`, window.innerWidth / 2 - 90, window.innerHeight / 4, '#f4b942');
-          }, 400);
-        }
+        spawnFloatingText(`+10 ⭐ +${coinReward} 🪙 +20 XP`, window.innerWidth / 2 - 65, window.innerHeight / 3);
+        addXP(20);
 
         if (prev < animal.maxDrinks && state.friendship[animal.id] >= animal.maxDrinks) {
           document.getElementById('album-dot').style.display = 'block';
@@ -2228,7 +2454,7 @@
           }, 650);
         }
 
-        state.currentAnimalIndex = (state.currentAnimalIndex + 1) % GAME_CONFIG.animals.length;
+        state.currentAnimalIndex = pickNextAnimalIndex();
         setTimeout(() => {
           build3DAnimal(GAME_CONFIG.animals[state.currentAnimalIndex], true);
           updateHUD();
@@ -2265,7 +2491,7 @@
             <div style="font-size:2.1rem;">${a.icon}</div>
             <div style="flex:1;">
               <div style="font-weight:800; font-size:0.92rem;">${a.name}</div>
-              <div style="font-size:0.76rem; color:#8c7b6b;">Habitué : ${Math.min(pts, a.maxDrinks)} / ${a.maxDrinks} ⭐</div>
+              <div style="font-size:0.76rem; color:#8c7b6b;">Habitué : ${Math.min(pts, a.maxDrinks)} / ${a.maxDrinks} ⭐ (Niv.${a.minLevel || 1})</div>
             </div>
             <button class="btn-add-cup" ${unlocked ? '' : 'disabled style="opacity:0.45;"'} onclick="openAnimalSecret('${a.id}')">
               ${unlocked ? 'Lire 📜' : '🔒'}
@@ -2315,7 +2541,7 @@
 
     function animate() {
       requestAnimationFrame(animate);
-      const dt = clock.getDelta();
+      const dt = Math.min(0.1, clock.getDelta());
       const elapsed = clock.getElapsedTime();
       const now = Date.now();
 
@@ -2343,6 +2569,17 @@
         drop.scale.setScalar(0.75 + Math.sin(elapsed * 6 + i) * 0.25);
       });
 
+      // Animation des gouttes d'eau 3D lors de l'arrosage du potager
+      for (let i = waterDrops3D.length - 1; i >= 0; i--) {
+        const wd = waterDrops3D[i];
+        wd.life -= dt;
+        wd.mesh.position.y += wd.vy * dt;
+        if (wd.life <= 0 || wd.mesh.position.y <= 0.2) {
+          scene.remove(wd.mesh);
+          waterDrops3D.splice(i, 1);
+        }
+      }
+
       // Progression solaire automatique et lucioles lumineuses (crépuscule / nuit)
       updateSolarCycle(elapsed);
       fireflies.forEach((f) => {
@@ -2352,7 +2589,7 @@
         f.mesh.position.y = 0.7 + Math.sin(elapsed * 2.4 + f.phase) * 0.35;
       });
 
-      // Animation de marche et de joie de l'animal 3D
+      // Animation de marche et de joie du client 3D au comptoir
       if (activeAnimalMesh) {
         if (animalWalkProgress < 1) {
           animalWalkProgress = Math.min(1, animalWalkProgress + dt * 0.75);
@@ -2377,6 +2614,48 @@
         }
       }
 
+      // Animation des autres animaux qui se baladent librement dans la ferme !
+      roamingAnimals.forEach((r) => {
+        if (!r.anchor.visible) return;
+        if (r.jumpTimer > 0) {
+          r.jumpTimer -= dt;
+          r.mesh.position.y = Math.abs(Math.sin(elapsed * 14)) * 0.55;
+          r.mesh.rotation.y += dt * 5;
+          return;
+        }
+        if (r.pauseTimer > 0) {
+          r.pauseTimer -= dt;
+          r.mesh.position.y = Math.abs(Math.sin(elapsed * 2.2 + r.index)) * 0.04;
+          r.legs.forEach(leg => { leg.rotation.x = 0; });
+          return;
+        }
+
+        const target = FARM_WAYPOINTS[r.targetWp];
+        const dx = target.x - r.anchor.position.x;
+        const dz = target.z - r.anchor.position.z;
+        const dist = Math.hypot(dx, dz);
+
+        if (dist < 0.15) {
+          r.pauseTimer = 1.6 + Math.random() * 2.4;
+          const neighbors = target.neighbors;
+          const options = neighbors.filter(n => n !== r.currentWp);
+          const nextChoice = options.length > 0
+            ? options[Math.floor(Math.random() * options.length)]
+            : neighbors[0];
+          r.currentWp = r.targetWp;
+          r.targetWp = nextChoice;
+        } else {
+          const step = Math.min(dist, r.speed * dt);
+          r.anchor.position.x += (dx / dist) * step;
+          r.anchor.position.z += (dz / dist) * step;
+          r.mesh.rotation.y = Math.atan2(dx, dz);
+          r.mesh.position.y = Math.abs(Math.sin(elapsed * 10 + r.walkCycle)) * 0.12;
+          r.legs.forEach((leg, li) => {
+            leg.rotation.x = Math.sin(elapsed * 13 + r.walkCycle + (li % 2) * Math.PI) * 0.42;
+          });
+        }
+      });
+
       // Position de la bulle de commande au-dessus de l'animal 3D
       const bubblePos = toScreenPosition(new THREE.Vector3(animalAnchor.position.x, 2.45, 0.9));
       const bubbleEl = document.getElementById('client-bubble-wrapper');
@@ -2384,9 +2663,18 @@
       bubbleEl.style.top = `${bubblePos.y}px`;
       bubbleEl.style.opacity = animalWalkProgress >= 0.95 ? '1' : '0';
 
-      // Croissance 3D en temps réel des cultures
+      // Assèchement progressif du sol & Croissance 3D conditionnée par l'humidité !
+      let anyPlotDry = false;
       plotsData.forEach(plot => {
         if (!plot.unlocked) return;
+
+        // Le sol sèche avec le temps (plus vite quand une plante boit l'eau)
+        const dryRate = (plot.state === 'growing') ? (1 / SOIL_DRY_TIME) : (1 / (SOIL_DRY_TIME * 1.6));
+        plot.moisture = Math.max(0, plot.moisture - dt * dryRate);
+
+        // Interpolation visuelle de la couleur du sol : foncé quand mouillé, clair quand sec
+        plot.soilMesh.material.color.copy(SOIL_DRY_COLOR).lerp(SOIL_WET_COLOR, plot.moisture);
+
         const tagEl = document.getElementById(`plot-tag-${plot.index}`);
         const screenPos = toScreenPosition(new THREE.Vector3(plot.group.position.x, 1.05, plot.group.position.z));
         plot.labelEl.style.left = `${screenPos.x}px`;
@@ -2394,25 +2682,41 @@
 
         if (plot.state === 'empty') {
           tagEl.className = 'plot-tag';
-          tagEl.innerText = 'Planter 🌱';
+          tagEl.innerText = plot.moisture > 0.1 ? `Planter 🌱 (💧${Math.round(plot.moisture * 100)}%)` : 'Planter 🌱 (Sol sec)';
         } else {
           const ing = GAME_CONFIG.ingredients[plot.crop];
-          const sec = (now - plot.plantedAt) / 1000;
-          const progress = Math.min(1, sec / plot.duration);
 
-          // Mise à l'échelle 3D progressive de la plante
+          if (plot.state === 'growing') {
+            if (plot.moisture > 0) {
+              // Le sol est humide : la plante pousse !
+              plot.wateredElapsed += dt;
+              plot.plantHolder.rotation.z = 0;
+            } else {
+              // Le sol est complètement sec : la plante s'arrête de pousser !
+              anyPlotDry = true;
+              plot.plantHolder.rotation.z = 0.14 + Math.sin(elapsed * 2.5) * 0.04;
+            }
+          }
+
+          const progress = Math.min(1, plot.wateredElapsed / plot.duration);
           const scale = 0.25 + progress * 0.85;
           plot.plantHolder.scale.setScalar(scale);
 
           if (progress >= 1) {
             plot.state = 'ready';
+            plot.plantHolder.rotation.z = 0;
             plot.plantHolder.position.y = 0.25 + Math.abs(Math.sin(elapsed * 5)) * 0.12;
             tagEl.className = 'plot-tag ready';
             tagEl.innerText = `${ing.icon} Récolter !`;
           } else {
-            const rem = Math.ceil(plot.duration - sec);
-            tagEl.className = 'plot-tag';
-            tagEl.innerText = `${ing.icon} ${rem}s`;
+            const rem = Math.ceil(plot.duration - plot.wateredElapsed);
+            if (plot.moisture <= 0.01) {
+              tagEl.className = 'plot-tag dry-alert';
+              tagEl.innerText = `💧 Sol sec ! (${rem}s ⏸️)`;
+            } else {
+              tagEl.className = 'plot-tag';
+              tagEl.innerText = `${ing.icon} ${rem}s • 💧${Math.ceil(plot.moisture * 100)}%`;
+            }
           }
         }
       });
@@ -2463,11 +2767,11 @@
         st.labelEl.style.top = `${sPos.y}px`;
         const tag = document.getElementById(`station-tag-${st.id}`);
         if (now >= st.readyAt) {
-          tag.className = 'plot-tag ready';
+          tag.className = (st.id === 'well' && anyPlotDry) ? 'plot-tag dry-alert' : 'plot-tag ready';
           if (st.id === 'hive') tag.innerText = '🍯 Récolter miel !';
           else if (st.id === 'berries') tag.innerText = '🫐 Cueillir baies !';
           else if (st.id === 'lemons') tag.innerText = '🍋 Cueillir citrons !';
-          else if (st.id === 'well') tag.innerText = '🪣 Arroser potager !';
+          else if (st.id === 'well') tag.innerText = anyPlotDry ? '🪣 Arroser vite (Sol sec) !' : '🪣 Arroser potager !';
         } else {
           const rem = Math.ceil((st.readyAt - now) / 1000);
           tag.className = 'plot-tag';
