@@ -334,6 +334,78 @@
       0% { opacity: 1; transform: translateY(0) scale(0.9); }
       100% { opacity: 0; transform: translateY(-55px) scale(1.15); }
     }
+
+    /* v2.8.0 : Icônes qui volent vers le HUD, bannières de journée, grange & marché */
+    .fly-icon {
+      position: fixed;
+      z-index: 250;
+      pointer-events: none;
+      font-size: 1.5rem;
+      filter: drop-shadow(0 3px 4px rgba(0,0,0,0.25));
+      transition: left 0.75s cubic-bezier(.55,-0.25,.6,1), top 0.75s cubic-bezier(.3,.6,.4,1), transform 0.75s ease-in, opacity 0.75s ease-in;
+    }
+    .pill.pulse { animation: pillPulse 0.45s ease-out; }
+    @keyframes pillPulse {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.18); background: #fff3c4; }
+      100% { transform: scale(1); }
+    }
+    .pill.clickable { cursor: pointer; pointer-events: auto; }
+    .pill.storage-full { border-color: #e76f51; color: #b3401f; animation: pulseDry 1.2s ease-in-out infinite; }
+    .day-banner {
+      position: fixed;
+      top: 22%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.6);
+      z-index: 150;
+      pointer-events: none;
+      background: linear-gradient(135deg, #fefae0, #f3e5d8);
+      border: 4px solid var(--wood-border);
+      border-radius: 24px;
+      padding: 14px 28px;
+      text-align: center;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+      opacity: 0;
+      animation: bannerInOut 3.2s ease-in-out forwards;
+    }
+    .day-banner .banner-title { font-size: 1.5rem; font-weight: 900; color: var(--green-dark); }
+    .day-banner .banner-sub { font-size: 0.85rem; font-weight: 700; color: var(--wood-dark); margin-top: 4px; }
+    @keyframes bannerInOut {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+      12% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+      20% { transform: translate(-50%, -50%) scale(1); }
+      82% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -60%) scale(0.95); }
+    }
+    .storage-bar-bg {
+      width: 100%; height: 14px;
+      background: #e2d4c3;
+      border-radius: 99px;
+      overflow: hidden;
+      border: 2px solid var(--wood-border);
+      margin: 6px 0 4px;
+    }
+    .storage-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #52b788, #f4b942, #e76f51);
+      background-size: 300% 100%;
+      transition: width 0.3s ease;
+    }
+    .market-row {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      border: 2px solid var(--wood-border);
+      border-radius: 14px;
+      padding: 7px 9px;
+      margin-bottom: 6px;
+      text-align: left;
+    }
+    .market-row .btn-add-cup { padding: 7px 9px; font-size: 0.74rem; }
+    .trend-up { color: #2d6a4f; font-weight: 900; }
+    .trend-down { color: #c0392b; font-weight: 900; }
+    .trend-flat { color: #8c7b6b; font-weight: 900; }
   </style>
 </head>
 <body>
@@ -362,8 +434,14 @@
         <div class="xp-bar-bg"><div class="xp-bar-fill" id="ui-xp-bar"></div></div>
         <span class="xp-subtext" id="ui-xp-text">0/45</span>
       </div>
-      <div class="pill">🪙 <span id="ui-coins">0</span></div>
+      <div class="pill" id="pill-coins">🪙 <span id="ui-coins">0</span></div>
       <div class="pill">⭐ <span id="ui-hearts">0</span></div>
+      <div class="pill clickable" id="pill-storage" onclick="openBarnModal()" title="Grange : stockage de tes récoltes (toucher pour vendre au marché)">
+        📦 <span id="ui-storage">0/50</span>
+      </div>
+      <div class="pill" id="ui-clock-pill" title="Heure de la ferme (1 journée = 2 min 40)" style="font-size:0.84rem; padding:5px 11px;">
+        <span id="ui-clock">Jour 1 • 12:00</span>
+      </div>
       <div class="pill" id="ui-weather-pill" title="Météo actuelle sur l'île" style="font-size:0.84rem; padding:5px 11px;">
         <span id="ui-weather-icon">☀️</span>
         <span id="ui-weather-label">Temps clair</span>
@@ -371,6 +449,10 @@
     </div>
     <div class="hud-group">
       <button class="icon-btn" onclick="recenterCamera()" title="Recentrer la caméra sur le chalet">🎯</button>
+      <button class="icon-btn" onclick="openBarnModal()" title="Grange & Marché du jour">
+        🏚️
+        <span class="badge-dot" id="barn-dot"></span>
+      </button>
       <button class="icon-btn" onclick="openOrdersModal()" title="Tableau des Commandes de la Vallée">
         📋
         <span class="badge-dot" id="orders-dot"></span>
@@ -416,6 +498,25 @@
       <p style="font-size:0.8rem; color:#7d6b5d; margin-bottom:12px;">Livre les récoltes demandées par les auberges et villages voisins pour gagner de grosses récompenses !</p>
       <div id="orders-list"></div>
       <button class="btn-serve" style="width:100%; margin-top:8px;" onclick="closeModal('modal-orders')">Retour à la ferme 🌻</button>
+    </div>
+  </div>
+
+  <!-- MODALE GRANGE & MARCHÉ DU JOUR (v2.8.0) -->
+  <div class="modal-overlay" id="modal-barn">
+    <div class="modal-box" style="max-width:410px;">
+      <h2 style="color:var(--green-dark); margin-bottom:4px;">🏚️ Grange & Marché</h2>
+      <p style="font-size:0.8rem; color:#7d6b5d;">Les prix changent chaque nuit à minuit 🌙 : vends quand le cours monte !</p>
+      <div style="background:white; border:2px solid var(--wood-border); border-radius:16px; padding:10px 12px; margin:10px 0; text-align:left;">
+        <div style="display:flex; justify-content:space-between; font-weight:800; font-size:0.86rem;">
+          <span>📦 Stockage (Grange niv. <span id="barn-level">1</span>)</span>
+          <span id="barn-cap-text">0 / 50</span>
+        </div>
+        <div class="storage-bar-bg"><div class="storage-bar-fill" id="barn-cap-bar"></div></div>
+        <button class="btn-add-cup" id="btn-barn-upgrade" style="width:100%; margin-top:6px;" onclick="upgradeBarn()">Agrandir la grange</button>
+      </div>
+      <div style="font-weight:800; font-size:0.86rem; color:var(--wood-dark); text-align:left; margin-bottom:6px;">🧺 Marché du <span id="market-day">Jour 1</span></div>
+      <div id="market-list"></div>
+      <button class="btn-serve" style="width:100%; margin-top:8px;" onclick="closeModal('modal-barn')">Retour à la ferme 🌻</button>
     </div>
   </div>
 
@@ -471,18 +572,19 @@
        1. CONFIGURATION ET TEXTES DU JEU
        ========================================================================= */
     const GAME_CONFIG = {
-      version: "v2.7.1",
+      version: "v2.8.0",
       grandGoalHearts: 80,
       grandGiftTitle: "Diplôme de Maître Herboriste 🏆",
       grandGiftMessage: "Félicitations ! Grâce à ton savoir-faire et tes récoltes, le Refuge des Thés est devenu l'adresse la plus réputée de la vallée. Tous les habitants de la forêt viennent goûter tes infusions artisanales !",
       
+      // sellPrice = prix de base au Marché (fluctue chaque jour entre -30% et +50%)
       ingredients: {
-        camomille: { id: "camomille", name: "Camomille", icon: "🌼", growTime: 22, seedCost: 1, minLevel: 1, color: 0xf4d35e },
-        menthe:    { id: "menthe",    name: "Menthe",    icon: "🍃", growTime: 28, seedCost: 1, minLevel: 1, color: 0x52b788 },
-        baies:     { id: "baies",     name: "Baies",     icon: "🫐", growTime: 34, seedCost: 2, minLevel: 1, color: 0x7b2cbf },
-        miel:      { id: "miel",      name: "Miel",      icon: "🍯", growTime: 40, seedCost: 3, minLevel: 1, color: 0xf4a261 },
-        lavande:   { id: "lavande",   name: "Lavande",   icon: "💜", growTime: 36, seedCost: 2, minLevel: 2, color: 0x9d4edd },
-        citron:    { id: "citron",    name: "Citron",    icon: "🍋", growTime: 45, seedCost: 3, minLevel: 3, color: 0xffea00 }
+        camomille: { id: "camomille", name: "Camomille", icon: "🌼", growTime: 22, seedCost: 1, sellPrice: 3, minLevel: 1, color: 0xf4d35e, shape: "flower" },
+        menthe:    { id: "menthe",    name: "Menthe",    icon: "🍃", growTime: 28, seedCost: 1, sellPrice: 3, minLevel: 1, color: 0x52b788, shape: "leafy" },
+        baies:     { id: "baies",     name: "Baies",     icon: "🫐", growTime: 34, seedCost: 2, sellPrice: 5, minLevel: 1, color: 0x7b2cbf, shape: "berry" },
+        miel:      { id: "miel",      name: "Miel",      icon: "🍯", growTime: 40, seedCost: 3, sellPrice: 7, minLevel: 1, color: 0xf4a261, shape: "fruit" },
+        lavande:   { id: "lavande",   name: "Lavande",   icon: "💜", growTime: 36, seedCost: 2, sellPrice: 6, minLevel: 2, color: 0x9d4edd, shape: "spike" },
+        citron:    { id: "citron",    name: "Citron",    icon: "🍋", growTime: 45, seedCost: 3, sellPrice: 8, minLevel: 3, color: 0xffea00, shape: "fruit" }
       },
 
       orderClients: [
@@ -795,17 +897,62 @@
         data.currentAnimalIndex = 0;
       }
       if (!Array.isArray(data.orders)) data.orders = [];
+      // v2.8.0 : Temps du monde, grange, marché et sauvegarde du potager / des stations
+      if (typeof data.worldTime !== 'number' || data.worldTime < 0) data.worldTime = 0;
+      if (typeof data.day !== 'number' || data.day < 1) data.day = 1;
+      if (typeof data.barnLevel !== 'number' || data.barnLevel < 1) data.barnLevel = 1;
+      if (!Array.isArray(data.plots)) data.plots = [];
+      if (!data.stations || typeof data.stations !== 'object') data.stations = {};
+      if (typeof data.lastSeen !== 'number') data.lastSeen = Date.now();
       return data;
     }
 
     let state = loadSave();
     let selectedSeed = 'camomille';
     let currentCup = [];
+    let worldSnapshotFn = null; // Branché plus bas : copie l'état du potager & des stations dans la sauvegarde
 
     function saveGame() {
+      if (worldSnapshotFn) worldSnapshotFn();
+      state.lastSeen = Date.now();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       updateHUD();
     }
+
+    // 📦 Grange : capacité de stockage limitée (gestion façon Hay Day)
+    const BARN_BASE_CAP = 50;
+    const BARN_CAP_STEP = 25;
+    function getStorageCap() {
+      return BARN_BASE_CAP + ((state.barnLevel || 1) - 1) * BARN_CAP_STEP;
+    }
+    function getStorageUsed() {
+      return Object.keys(GAME_CONFIG.ingredients).reduce((sum, k) => sum + (state.inventory[k] || 0), 0);
+    }
+    function getBarnUpgradeCost() {
+      return 40 + ((state.barnLevel || 1) - 1) * 35;
+    }
+    // Ajoute au stock dans la limite de la place disponible, renvoie la quantité réellement stockée
+    function storeItem(id, qty) {
+      const free = Math.max(0, getStorageCap() - getStorageUsed());
+      const added = Math.min(qty, free);
+      if (added > 0) state.inventory[id] = (state.inventory[id] || 0) + added;
+      return added;
+    }
+
+    // 🧺 Marché : prix qui fluctuent chaque jour
+    function refreshMarket() {
+      const prev = (state.market && state.market.prices) || {};
+      const prices = {};
+      const trend = {};
+      Object.values(GAME_CONFIG.ingredients).forEach(ing => {
+        const p = Math.max(1, Math.round(ing.sellPrice * (0.7 + Math.random() * 0.8)));
+        prices[ing.id] = p;
+        const old = prev[ing.id];
+        trend[ing.id] = (typeof old !== 'number' || old === p) ? 0 : (p > old ? 1 : -1);
+      });
+      state.market = { day: state.day, prices, trend };
+    }
+    if (!state.market || !state.market.prices) refreshMarket();
 
     function spawnFloatingText(text, x, y, color = '#e07a5f') {
       const el = document.createElement('div');
@@ -816,6 +963,43 @@
       el.style.color = color;
       document.body.appendChild(el);
       setTimeout(() => el.remove(), 1100);
+    }
+
+    // ✨ Une icône s'envole depuis le point touché vers la pastille du HUD (pièces, grange...)
+    function flyIconToHUD(icon, fromX, fromY, targetPillId, count = 1) {
+      const target = document.getElementById(targetPillId);
+      if (!target) return;
+      const rect = target.getBoundingClientRect();
+      const n = Math.min(5, Math.max(1, count));
+      for (let i = 0; i < n; i++) {
+        const el = document.createElement('div');
+        el.className = 'fly-icon';
+        el.innerText = icon;
+        el.style.left = `${(fromX || window.innerWidth / 2) + (Math.random() - 0.5) * 30}px`;
+        el.style.top = `${(fromY || window.innerHeight / 2) + (Math.random() - 0.5) * 30}px`;
+        document.body.appendChild(el);
+        setTimeout(() => {
+          el.style.left = `${rect.left + rect.width / 2 - 12}px`;
+          el.style.top = `${rect.top + rect.height / 2 - 14}px`;
+          el.style.transform = 'scale(0.55)';
+          el.style.opacity = '0.4';
+        }, 30 + i * 85);
+        setTimeout(() => {
+          el.remove();
+          target.classList.remove('pulse');
+          void target.offsetWidth;
+          target.classList.add('pulse');
+        }, 820 + i * 85);
+      }
+    }
+
+    // 🌅 Grande bannière centrale (nouveau jour, niveau atteint...)
+    function showBanner(title, subtitle) {
+      const el = document.createElement('div');
+      el.className = 'day-banner';
+      el.innerHTML = `<div class="banner-title">${title}</div><div class="banner-sub">${subtitle || ''}</div>`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3300);
     }
 
     /* =========================================================================
@@ -898,10 +1082,48 @@
     lanternLight.position.set(-3.2, 2.5, 0.2);
     scene.add(lanternLight);
 
-    // 4.1 Grande Île Domaine (3x plus vaste !), Plage de sable, Collines, Grand Lac & Cascade animée
-    const waterMesh = new THREE.Mesh(new THREE.CylinderGeometry(75, 75, 0.6, 42), matWater);
-    waterMesh.position.y = -1.15;
+    // 4.1 Grande Île Domaine, Océan animé à vagues low-poly, écume sur la plage, Collines, Grand Lac & Cascade
+    scene.fog = new THREE.Fog(0x90dbf4, 58, 125);
+
+    const oceanGeo = new THREE.PlaneGeometry(180, 180, 64, 64);
+    oceanGeo.rotateX(-Math.PI / 2);
+    const oceanPos = oceanGeo.attributes.position;
+    const oceanBase = new Float32Array(oceanPos.array.length);
+    oceanBase.set(oceanPos.array);
+    const matOcean = new THREE.MeshPhongMaterial({
+      color: 0x3fc1e0,
+      specular: 0x9be7ff,
+      shininess: 80,
+      flatShading: true,
+      transparent: true,
+      opacity: 0.93
+    });
+    const waterMesh = new THREE.Mesh(oceanGeo, matOcean);
+    waterMesh.position.y = -0.72;
+    waterMesh.receiveShadow = true;
     scene.add(waterMesh);
+
+    function updateOcean(t) {
+      const arr = oceanPos.array;
+      for (let i = 0; i < arr.length; i += 3) {
+        const x = oceanBase[i];
+        const z = oceanBase[i + 2];
+        arr[i + 1] = Math.sin(x * 0.22 + t * 1.15) * 0.16 + Math.cos(z * 0.27 + t * 0.85) * 0.13 + Math.sin((x + z) * 0.11 + t * 1.6) * 0.07;
+      }
+      oceanPos.needsUpdate = true;
+    }
+
+    // Anneaux d'écume blanche qui respirent autour de la plage
+    const foamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
+    const foamRing = new THREE.Mesh(new THREE.RingGeometry(27.0, 28.3, 56), foamMat);
+    foamRing.rotation.x = -Math.PI / 2;
+    foamRing.position.y = -0.33;
+    scene.add(foamRing);
+    const foamMat2 = new THREE.MeshBasicMaterial({ color: 0xe0fbfc, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
+    const foamRing2 = new THREE.Mesh(new THREE.RingGeometry(28.6, 29.4, 56), foamMat2);
+    foamRing2.rotation.x = -Math.PI / 2;
+    foamRing2.position.y = -0.38;
+    scene.add(foamRing2);
 
     const islandBase = new THREE.Mesh(new THREE.CylinderGeometry(26.2, 23.5, 2.1, 24), matEarth);
     islandBase.position.y = -0.95;
@@ -1407,10 +1629,67 @@
       }
     ];
     let lastSunIcon = '☀️';
+    let currentCyclePos = 0;
+    const DAY_LENGTH = 160; // Une journée complète de la ferme = 160 secondes réelles
+
+    // Correspondance position du cycle -> heure de la journée (midi, fin d'après-midi, coucher, minuit, puis aube jusqu'à midi)
+    function cycleToHour(cyclePos) {
+      const pts = [[0, 12], [0.25, 16.5], [0.5, 20], [0.75, 24], [1, 36]];
+      for (let i = 0; i < pts.length - 1; i++) {
+        const [p0, h0] = pts[i];
+        const [p1, h1] = pts[i + 1];
+        if (cyclePos >= p0 && cyclePos <= p1) {
+          return (h0 + (h1 - h0) * ((cyclePos - p0) / (p1 - p0))) % 24;
+        }
+      }
+      return 12;
+    }
+
+    // Nuages blancs moelleux qui dérivent au-dessus de l'océan autour de l'île
+    const skyClouds = [];
+    const skyCloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.94 });
+    for (let c = 0; c < 9; c++) {
+      const cg = new THREE.Group();
+      const puffs = 3 + (c % 3);
+      for (let p = 0; p < puffs; p++) {
+        const r = 1.1 + Math.random() * 0.9;
+        const puff = new THREE.Mesh(new THREE.DodecahedronGeometry(r, 0), skyCloudMat);
+        puff.position.set((p - puffs / 2) * 1.3, Math.random() * 0.5, (Math.random() - 0.5) * 1.1);
+        puff.scale.y = 0.72;
+        cg.add(puff);
+      }
+      const ang = (c / 9) * Math.PI * 2;
+      const rad = 34 + (c % 3) * 5;
+      cg.position.set(Math.cos(ang) * rad, 6 + (c % 4) * 1.4, Math.sin(ang) * rad);
+      scene.add(cg);
+      skyClouds.push({ group: cg, angle: ang, radius: rad, speed: 0.012 + (c % 3) * 0.005, bob: c * 1.7 });
+    }
+
+    // Papillons colorés qui butinent les fleurs pendant la journée
+    const butterflies = [];
+    const butterflyColors = [0xff8fab, 0xffd166, 0x70d6ff, 0xc77dff, 0xffffff, 0xff9f1c, 0x95d5b2];
+    butterflyColors.forEach((col, i) => {
+      const bf = new THREE.Group();
+      const wingMat = new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide });
+      const wingGeo = new THREE.CircleGeometry(0.17, 6);
+      const wL = new THREE.Mesh(wingGeo, wingMat);
+      wL.position.x = -0.15;
+      const wR = new THREE.Mesh(wingGeo, wingMat);
+      wR.position.x = 0.15;
+      const pivotL = new THREE.Group(); pivotL.add(wL);
+      const pivotR = new THREE.Group(); pivotR.add(wR);
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.26, 5), new THREE.MeshBasicMaterial({ color: 0x3d2b1f }));
+      body.rotation.x = Math.PI / 2;
+      bf.add(pivotL, pivotR, body);
+      scene.add(bf);
+      const home = flowerSpots[(i * 3) % flowerSpots.length];
+      butterflies.push({ group: bf, wingL: pivotL, wingR: pivotR, hx: home[0], hz: home[1], phase: i * 1.9, rad: 1.4 + (i % 3) * 0.6 });
+    });
 
     function updateSolarCycle(elapsedSec) {
-      // Un cycle solaire complet dure 160 secondes de manière ultra-progressive
-      const cyclePos = (elapsedSec / 160) % 1;
+      // Un cycle solaire complet dure DAY_LENGTH secondes de manière ultra-progressive (temps sauvegardé !)
+      const cyclePos = (elapsedSec / DAY_LENGTH) % 1;
+      currentCyclePos = cyclePos;
       const totalFrames = SOLAR_KEYFRAMES.length;
       const scaled = cyclePos * totalFrames;
       const idxA = Math.floor(scaled) % totalFrames;
@@ -1423,6 +1702,8 @@
       const kfB = SOLAR_KEYFRAMES[idxB];
 
       scene.background.copy(kfA.sky).lerp(kfB.sky, smoothT);
+      if (scene.fog) scene.fog.color.copy(scene.background);
+      matOcean.color.setHex(0x3fc1e0).lerp(scene.background, 0.25);
       ambientLight.color.copy(kfA.amb).lerp(kfB.amb, smoothT);
       sunLight.color.copy(kfA.sun).lerp(kfB.sun, smoothT);
 
@@ -1445,6 +1726,15 @@
         const iconEl = document.getElementById('ui-sun-icon');
         if (iconEl) iconEl.innerText = lastSunIcon;
       }
+
+      // Horloge de la ferme : "Jour X • HH:MM"
+      const hour = cycleToHour(cyclePos);
+      const hh = Math.floor(hour);
+      const mm = Math.floor((hour - hh) * 6) * 10; // Par pas de 10 minutes
+      const clockIcon = (hour >= 21 || hour < 6) ? '🌙' : (hour >= 18 ? '🌇' : (hour < 9 ? '🌄' : '🕐'));
+      const clockTxt = `${clockIcon} Jour ${state.day} • ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+      const clockEl = document.getElementById('ui-clock');
+      if (clockEl && clockEl.innerText !== clockTxt) clockEl.innerText = clockTxt;
     }
 
     // 4.3b Météo Dynamique 3D (Pluie qui arrose seule, Canicule qui sèche vite, Grand Vent qui accélère le moulin)
@@ -1874,30 +2164,188 @@
     }
     rebuildGardenFence();
 
+    // ✨ Système de particules 3D (récoltes, plantations, confettis de niveau, ventes...)
+    const particles3D = [];
+    const particleGeo = new THREE.BoxGeometry(0.13, 0.13, 0.13);
+    const particleMatCache = {};
+    function getParticleMat(color) {
+      if (!particleMatCache[color]) particleMatCache[color] = new THREE.MeshBasicMaterial({ color });
+      return particleMatCache[color];
+    }
+    function spawnBurst3D(x, y, z, colors, count = 14, power = 1) {
+      const cols = Array.isArray(colors) ? colors : [colors];
+      for (let i = 0; i < count; i++) {
+        const m = new THREE.Mesh(particleGeo, getParticleMat(cols[i % cols.length]));
+        m.position.set(x, y, z);
+        const ang = Math.random() * Math.PI * 2;
+        const sp = (1.2 + Math.random() * 1.8) * power;
+        scene.add(m);
+        const life = 0.8 + Math.random() * 0.5;
+        particles3D.push({
+          mesh: m,
+          vx: Math.cos(ang) * sp,
+          vy: (3.2 + Math.random() * 2.6) * power,
+          vz: Math.sin(ang) * sp,
+          life, maxLife: life,
+          spin: (Math.random() - 0.5) * 12
+        });
+      }
+    }
+    function updateParticles3D(dt) {
+      for (let i = particles3D.length - 1; i >= 0; i--) {
+        const p = particles3D[i];
+        p.life -= dt;
+        p.vy -= 9.5 * dt;
+        p.mesh.position.x += p.vx * dt;
+        p.mesh.position.y += p.vy * dt;
+        p.mesh.position.z += p.vz * dt;
+        p.mesh.rotation.x += p.spin * dt;
+        p.mesh.rotation.y += p.spin * dt;
+        if (p.mesh.position.y < 0.15) { p.mesh.position.y = 0.15; p.vy *= -0.35; p.vx *= 0.6; p.vz *= 0.6; }
+        p.mesh.scale.setScalar(Math.max(0.01, p.life / p.maxLife));
+        if (p.life <= 0) {
+          scene.remove(p.mesh);
+          particles3D.splice(i, 1);
+        }
+      }
+    }
+
+    // 🫧 Rebond "squash & stretch" des bâtiments quand on interagit avec eux
+    const bounceList = [];
+    function bounceObject(obj) {
+      if (!obj) return;
+      const existing = bounceList.find(b => b.obj === obj);
+      if (existing) { existing.t = 0; return; }
+      bounceList.push({ obj, t: 0, base: obj.scale.clone() });
+    }
+    function updateBounces(dt) {
+      for (let i = bounceList.length - 1; i >= 0; i--) {
+        const b = bounceList[i];
+        b.t += dt;
+        const k = Math.min(1, b.t / 0.45);
+        const s = Math.sin(k * Math.PI * 2) * (1 - k) * 0.2;
+        b.obj.scale.set(b.base.x * (1 - s * 0.5), b.base.y * (1 + s), b.base.z * (1 - s * 0.5));
+        if (k >= 1) {
+          b.obj.scale.copy(b.base);
+          bounceList.splice(i, 1);
+        }
+      }
+    }
+
+    // Stade de croissance visuel : 0 = petite pousse, 1 = plante en croissance avec bouton, 2 = prête à récolter
+    function getPlotStage(plot) {
+      if (plot.state === 'empty') return -1;
+      if (plot.state === 'ready') return 2;
+      const prog = plot.duration > 0 ? plot.wateredElapsed / plot.duration : 0;
+      return prog < 0.4 ? 0 : 1;
+    }
+
+    const plantStemMat = new THREE.MeshLambertMaterial({ color: 0x40916c });
+    const plantLeafMat = new THREE.MeshLambertMaterial({ color: 0x74c69d });
+    const plantSproutMat = new THREE.MeshLambertMaterial({ color: 0x95d5b2 });
+    const plantWhiteMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+
+    function buildCropHead(ing, sub) {
+      const headMat = new THREE.MeshLambertMaterial({ color: ing.color });
+      const shape = ing.shape || 'flower';
+      if (shape === 'flower') {
+        const center = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshLambertMaterial({ color: 0xf4a261 }));
+        center.position.y = 0.56;
+        sub.add(center);
+        for (let p = 0; p < 6; p++) {
+          const a = (p / 6) * Math.PI * 2;
+          const petal = new THREE.Mesh(new THREE.SphereGeometry(0.1, 7, 7), ing.id === 'camomille' ? plantWhiteMat : headMat);
+          petal.scale.set(1, 0.4, 1);
+          petal.position.set(Math.cos(a) * 0.15, 0.55, Math.sin(a) * 0.15);
+          petal.castShadow = true;
+          sub.add(petal);
+        }
+      } else if (shape === 'berry') {
+        [[0, 0.56, 0], [0.11, 0.48, 0.06], [-0.1, 0.5, -0.05], [0.02, 0.44, -0.11]].forEach(([bx, by, bz]) => {
+          const berry = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), headMat);
+          berry.position.set(bx, by, bz);
+          berry.castShadow = true;
+          sub.add(berry);
+        });
+      } else if (shape === 'fruit') {
+        const fruit = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 10), headMat);
+        fruit.scale.set(0.85, 1.1, 0.85);
+        fruit.position.y = 0.5;
+        fruit.castShadow = true;
+        sub.add(fruit);
+        const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), plantLeafMat);
+        leaf.scale.set(1.4, 0.3, 0.7);
+        leaf.position.set(0.08, 0.7, 0);
+        sub.add(leaf);
+      } else if (shape === 'spike') {
+        for (let s = 0; s < 4; s++) {
+          const bud = new THREE.Mesh(new THREE.SphereGeometry(0.075 - s * 0.01, 7, 7), headMat);
+          bud.scale.set(1, 1.3, 1);
+          bud.position.y = 0.42 + s * 0.11;
+          bud.castShadow = true;
+          sub.add(bud);
+        }
+      } else { // leafy (menthe)
+        [[0, 0.5, 0, 0.19], [0.13, 0.42, 0.08, 0.14], [-0.12, 0.44, -0.07, 0.15]].forEach(([lx, ly, lz, lr]) => {
+          const tuft = new THREE.Mesh(new THREE.DodecahedronGeometry(lr), headMat);
+          tuft.position.set(lx, ly, lz);
+          tuft.castShadow = true;
+          sub.add(tuft);
+        });
+      }
+    }
+
     function rebuildPlotPlant3D(plot) {
       while (plot.plantHolder.children.length > 0) {
         plot.plantHolder.remove(plot.plantHolder.children[0]);
       }
-      if (plot.state === 'empty') return;
+      const stage = getPlotStage(plot);
+      plot.stage = stage;
+      if (stage < 0) return;
 
       const ing = GAME_CONFIG.ingredients[plot.crop];
-      const stemMat = new THREE.MeshLambertMaterial({ color: 0x40916c });
-      const headMat = new THREE.MeshLambertMaterial({ color: ing.color });
-
-      // 4 petites pousses par parcelle
+      // 4 plants par parcelle
       const offsets = [[-0.38, -0.38], [0.38, -0.38], [-0.38, 0.38], [0.38, 0.38]];
-      offsets.forEach(([ox, oz]) => {
+      offsets.forEach(([ox, oz], i) => {
         const sub = new THREE.Group();
         sub.position.set(ox, 0, oz);
-        const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.45, 6), stemMat);
-        stem.position.y = 0.22;
-        sub.add(stem);
+        sub.rotation.y = i * 1.3;
 
-        const blossom = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), headMat);
-        blossom.position.y = 0.5;
-        blossom.castShadow = true;
-        sub.add(blossom);
-
+        if (stage === 0) {
+          // Petite pousse : deux feuilles tendres qui sortent de terre
+          [-1, 1].forEach(side => {
+            const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.09, 7, 7), plantSproutMat);
+            leaf.scale.set(1.5, 0.35, 0.8);
+            leaf.position.set(side * 0.08, 0.12, 0);
+            leaf.rotation.z = side * 0.5;
+            sub.add(leaf);
+          });
+          const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 0.14, 5), plantStemMat);
+          tip.position.y = 0.06;
+          sub.add(tip);
+        } else {
+          const stemH = stage === 2 ? 0.48 : 0.36;
+          const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, stemH, 6), plantStemMat);
+          stem.position.y = stemH / 2;
+          sub.add(stem);
+          [0, 1, 2].forEach(k => {
+            const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.1, 7, 7), plantLeafMat);
+            const a = k * 2.1;
+            leaf.scale.set(1.5, 0.3, 0.75);
+            leaf.position.set(Math.cos(a) * 0.12, 0.14 + k * 0.07, Math.sin(a) * 0.12);
+            leaf.rotation.y = -a;
+            sub.add(leaf);
+          });
+          if (stage === 1) {
+            // Bouton fermé de la couleur de la récolte
+            const bud = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), new THREE.MeshLambertMaterial({ color: ing.color }));
+            bud.scale.set(1, 1.3, 1);
+            bud.position.y = stemH + 0.04;
+            sub.add(bud);
+          } else {
+            buildCropHead(ing, sub);
+          }
+        }
         plot.plantHolder.add(sub);
       });
     }
@@ -2266,6 +2714,274 @@
     });
     plotLabelsContainer.appendChild(orderBoardLabelEl);
 
+    // H) 🏚️ La Grande Grange Rouge & son Silo façon Hay Day (Stockage + Marché du jour)
+    const barnGroup = new THREE.Group();
+    barnGroup.position.set(-0.5, 0.1, -13.2);
+    const barnRedMat = new THREE.MeshLambertMaterial({ color: 0xc0392b });
+    const barnTrimMat = new THREE.MeshLambertMaterial({ color: 0xfdf8f2 });
+    const barnRoofMat = new THREE.MeshLambertMaterial({ color: 0x6d3b2a });
+
+    const barnBody = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.2, 2.8), barnRedMat);
+    barnBody.position.y = 1.1;
+    barnBody.castShadow = true;
+    barnBody.receiveShadow = true;
+    barnGroup.add(barnBody);
+
+    // Toit à deux pentes (prisme triangulaire) + pignon blanc
+    const barnRoofGeo = new THREE.CylinderGeometry(2.2, 2.2, 3.15, 3);
+    barnRoofGeo.rotateX(-Math.PI / 2);
+    const barnRoof = new THREE.Mesh(barnRoofGeo, barnRoofMat);
+    barnRoof.scale.set(1, 0.55, 1);
+    barnRoof.position.y = 2.82;
+    barnRoof.castShadow = true;
+    barnGroup.add(barnRoof);
+    const gableGeo = new THREE.CylinderGeometry(1.92, 1.92, 0.06, 3);
+    gableGeo.rotateX(-Math.PI / 2);
+    const gable = new THREE.Mesh(gableGeo, barnRedMat);
+    gable.scale.set(1, 0.55, 1);
+    gable.position.set(0, 2.78, 1.42);
+    barnGroup.add(gable);
+
+    // Grande porte blanche en croix
+    const barnDoor = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.6, 0.08), new THREE.MeshLambertMaterial({ color: 0x922b21 }));
+    barnDoor.position.set(0, 0.82, 1.42);
+    barnGroup.add(barnDoor);
+    const doorFrameTop = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.1, 0.1), barnTrimMat);
+    doorFrameTop.position.set(0, 1.66, 1.47);
+    barnGroup.add(doorFrameTop);
+    [-0.78, 0.78].forEach(fx => {
+      const side = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.66, 0.1), barnTrimMat);
+      side.position.set(fx, 0.83, 1.47);
+      barnGroup.add(side);
+    });
+    [0.82, -0.82].forEach(rot => {
+      const brace = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.05, 0.06), barnTrimMat);
+      brace.position.set(0, 0.82, 1.48);
+      brace.rotation.z = rot;
+      barnGroup.add(brace);
+    });
+    // Lucarne du grenier
+    const loftWin = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.5, 0.08), matWindowGlow);
+    loftWin.position.set(0, 2.62, 1.47);
+    barnGroup.add(loftWin);
+    // Coins blancs
+    [[-1.68, 1.42], [1.68, 1.42], [-1.68, -1.42], [1.68, -1.42]].forEach(([cx, cz]) => {
+      const corner = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.2, 0.12), barnTrimMat);
+      corner.position.set(cx, 1.1, cz);
+      barnGroup.add(corner);
+    });
+
+    // Silo à grains avec dôme
+    const siloMat = new THREE.MeshLambertMaterial({ color: 0xe9ecef });
+    const silo = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.9, 3.4, 14), siloMat);
+    silo.position.set(2.65, 1.7, -0.4);
+    silo.castShadow = true;
+    barnGroup.add(silo);
+    [0.8, 1.9, 3.0].forEach(by => {
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.92, 0.92, 0.1, 14), new THREE.MeshLambertMaterial({ color: 0xadb5bd }));
+      band.position.set(2.65, by, -0.4);
+      barnGroup.add(band);
+    });
+    const siloDome = new THREE.Mesh(new THREE.SphereGeometry(0.9, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), barnRedMat);
+    siloDome.position.set(2.65, 3.4, -0.4);
+    siloDome.castShadow = true;
+    barnGroup.add(siloDome);
+
+    // Bottes de foin devant la grange
+    const hayMat = new THREE.MeshLambertMaterial({ color: 0xe9c46a });
+    [[-2.25, 0.35, 1.2], [-2.0, 0.35, 2.05], [-2.15, 1.0, 1.6]].forEach(([hx, hy, hz]) => {
+      const bale = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.8, 12), hayMat);
+      bale.rotation.z = Math.PI / 2;
+      bale.position.set(hx, hy, hz);
+      bale.castShadow = true;
+      barnGroup.add(bale);
+    });
+
+    const barnHit = new THREE.Mesh(new THREE.BoxGeometry(5.2, 3.6, 3.4), new THREE.MeshBasicMaterial({ visible: false }));
+    barnHit.position.set(0.6, 1.8, 0);
+    barnHit.userData = { type: 'barn' };
+    barnGroup.add(barnHit);
+    scene.add(barnGroup);
+
+    const barnLabelEl = document.createElement('div');
+    barnLabelEl.className = 'world-label';
+    barnLabelEl.style.cursor = 'pointer';
+    barnLabelEl.innerHTML = `<div class="plot-tag" id="barn-tag" style="pointer-events:auto;">🏚️ Grange</div>`;
+    barnLabelEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openBarnModal();
+    });
+    plotLabelsContainer.appendChild(barnLabelEl);
+    const barnLabelPos = new THREE.Vector3(-0.5, 4.3, -13.2);
+
+    /* =========================================================================
+       4.7 RESTAURATION DE LA SAUVEGARDE DU POTAGER + POUSSE HORS-LIGNE (v2.8.0)
+       ========================================================================= */
+    const offlineSec = Math.min(1800, Math.max(0, (Date.now() - (state.lastSeen || Date.now())) / 1000));
+    let offlineGrewSomething = false;
+    plotsData.forEach((plot, idx) => {
+      const saved = state.plots[idx];
+      if (saved) {
+        if (typeof saved.moisture === 'number') plot.moisture = Math.max(0, Math.min(1, saved.moisture));
+        const ing = GAME_CONFIG.ingredients[saved.crop];
+        if (saved.state && saved.state !== 'empty' && ing) {
+          plot.state = saved.state;
+          plot.crop = saved.crop;
+          plot.duration = saved.duration || ing.growTime;
+          plot.wateredElapsed = saved.wateredElapsed || 0;
+        }
+      }
+      // Les cultures continuent de pousser pendant ton absence (tant que la terre reste humide, max 30 min)
+      if (offlineSec > 5 && plot.unlocked) {
+        if (plot.state === 'growing') {
+          const wetTime = plot.moisture * SOIL_DRY_TIME;
+          const grow = Math.min(offlineSec, wetTime);
+          if (grow > 1) offlineGrewSomething = true;
+          plot.wateredElapsed += grow;
+          if (plot.wateredElapsed >= plot.duration) {
+            plot.wateredElapsed = plot.duration;
+            plot.state = 'ready';
+          }
+        }
+        plot.moisture = Math.max(0, plot.moisture - offlineSec / SOIL_DRY_TIME);
+      }
+      rebuildPlotPlant3D(plot);
+    });
+    Object.values(specialStations).forEach(st => {
+      const savedReady = state.stations[st.id];
+      if (typeof savedReady === 'number') st.readyAt = savedReady;
+    });
+
+    worldSnapshotFn = () => {
+      state.plots = plotsData.map(p => ({
+        state: p.state,
+        crop: p.crop,
+        moisture: Math.round(p.moisture * 1000) / 1000,
+        wateredElapsed: Math.round(p.wateredElapsed * 100) / 100,
+        duration: p.duration
+      }));
+      state.stations = {};
+      Object.values(specialStations).forEach(st => { state.stations[st.id] = st.readyAt; });
+    };
+
+    if (offlineSec > 90) {
+      setTimeout(() => {
+        showBanner('🌿 Bon retour !', offlineGrewSomething
+          ? `Tes cultures ont poussé pendant ton absence (${Math.round(offlineSec / 60)} min)`
+          : 'Pense à arroser au puits pour que tes plantes poussent même quand tu pars !');
+      }, 900);
+    }
+
+    // Sauvegarde automatique régulière + à la fermeture de l'onglet
+    setInterval(() => saveGame(), 10000);
+    window.addEventListener('beforeunload', () => saveGame());
+    document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(); });
+
+    // 🌙 Nouveau jour à minuit : nouveaux prix au marché + petite prime quotidienne
+    function startNewDay(newDay) {
+      state.day = newDay;
+      refreshMarket();
+      const dailyGift = 5 + Math.min(15, getFarmLevel() * 2);
+      state.coins += dailyGift;
+      sfxSuccess();
+      showBanner(`🌙 Jour ${newDay}`, `Nouveaux prix au marché 🧺 • Prime du jour +${dailyGift} 🪙`);
+      const barnDot = document.getElementById('barn-dot');
+      if (barnDot) barnDot.style.display = 'block';
+      saveGame();
+    }
+
+    /* =========================================================================
+       4.8 GRANGE & MARCHÉ : VENTE DES RÉCOLTES ET AGRANDISSEMENT DU STOCKAGE
+       ========================================================================= */
+    function openBarnModal() {
+      sfxClick();
+      const barnDot = document.getElementById('barn-dot');
+      if (barnDot) barnDot.style.display = 'none';
+      renderBarnModal();
+      document.getElementById('modal-barn').style.display = 'flex';
+      bounceObject(barnGroup);
+    }
+
+    function renderBarnModal() {
+      const used = getStorageUsed();
+      const cap = getStorageCap();
+      const pct = Math.min(100, Math.round((used / cap) * 100));
+      document.getElementById('barn-level').innerText = state.barnLevel;
+      document.getElementById('barn-cap-text').innerText = `${used} / ${cap}`;
+      const bar = document.getElementById('barn-cap-bar');
+      bar.style.width = `${pct}%`;
+      bar.style.backgroundPosition = `${pct}% 0`;
+      const upCost = getBarnUpgradeCost();
+      const btnUp = document.getElementById('btn-barn-upgrade');
+      btnUp.innerText = `🔨 Agrandir (+${BARN_CAP_STEP} places) • ${upCost} 🪙`;
+      btnUp.disabled = state.coins < upCost;
+      btnUp.style.opacity = state.coins < upCost ? '0.5' : '1';
+      document.getElementById('market-day').innerText = `Jour ${state.day}`;
+
+      const prices = state.market.prices;
+      const trend = state.market.trend || {};
+      document.getElementById('market-list').innerHTML = Object.values(GAME_CONFIG.ingredients).map(ing => {
+        const have = state.inventory[ing.id] || 0;
+        const price = prices[ing.id] || ing.sellPrice;
+        const tr = trend[ing.id] || 0;
+        const trTxt = tr > 0 ? '<span class="trend-up">▲</span>' : (tr < 0 ? '<span class="trend-down">▼</span>' : '<span class="trend-flat">●</span>');
+        const ratio = price / ing.sellPrice;
+        const hint = ratio >= 1.25 ? ' • 🔥 Bon prix !' : (ratio <= 0.8 ? ' • 😕 Prix bas' : '');
+        const dis = have <= 0 ? 'disabled style="opacity:0.45;"' : '';
+        return `
+          <div class="market-row">
+            <div style="font-size:1.5rem; text-align:center;">${ing.icon}</div>
+            <div>
+              <div style="font-weight:800; font-size:0.86rem;">${ing.name} <span style="color:#8c7b6b; font-weight:700;">x${have}</span></div>
+              <div style="font-size:0.74rem; color:#7d5a3c; font-weight:700;">${trTxt} ${price} 🪙 / unité${hint}</div>
+            </div>
+            <div style="display:flex; gap:4px;">
+              <button class="btn-add-cup" ${dis} onclick="sellItem(event, '${ing.id}', 1)">Vendre 1</button>
+              <button class="btn-add-cup" ${dis} style="background:#e07a5f; box-shadow:0 4px 0 #b35237;" onclick="sellItem(event, '${ing.id}', 'all')">Tout</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function sellItem(ev, id, qtyMode) {
+      const have = state.inventory[id] || 0;
+      if (have <= 0) { sfxError(); return; }
+      const qty = qtyMode === 'all' ? have : Math.min(have, qtyMode);
+      const price = state.market.prices[id] || GAME_CONFIG.ingredients[id].sellPrice;
+      const total = qty * price;
+      state.inventory[id] -= qty;
+      state.coins += total;
+      sfxHarvest();
+      flyIconToHUD('🪙', ev.clientX, ev.clientY, 'pill-coins', Math.ceil(total / 6));
+      spawnFloatingText(`+${total} 🪙`, ev.clientX - 20, ev.clientY - 30, '#c9a227');
+      spawnBurst3D(barnGroup.position.x, 2.5, barnGroup.position.z + 1.5, [0xffd166, 0xf4b942, 0xffffff], 10);
+      addXP(Math.max(1, Math.floor(qty / 2)));
+      saveGame();
+      renderDock();
+      renderBarnModal();
+    }
+
+    function upgradeBarn() {
+      const cost = getBarnUpgradeCost();
+      if (state.coins < cost) { sfxError(); return; }
+      state.coins -= cost;
+      state.barnLevel = (state.barnLevel || 1) + 1;
+      sfxSuccess();
+      bounceObject(barnGroup);
+      spawnBurst3D(barnGroup.position.x, 3.2, barnGroup.position.z, [0xc0392b, 0xffffff, 0xf4b942, 0x52b788], 26, 1.2);
+      addXP(12);
+      saveGame();
+      renderBarnModal();
+      spawnFloatingText(`🏚️ Grange agrandie : ${getStorageCap()} places (+12 XP) !`, window.innerWidth / 2 - 120, window.innerHeight / 3, '#52b788');
+    }
+
+    function warnStorageFull(x, y) {
+      sfxError();
+      spawnFloatingText('📦 Grange pleine ! Vends au marché 🏚️ ou agrandis-la', x - 120, y, '#e76f51');
+      const pill = document.getElementById('pill-storage');
+      if (pill) { pill.classList.remove('pulse'); void pill.offsetWidth; pill.classList.add('pulse'); }
+    }
+
     /* =========================================================================
        5. INTERACTIONS TACTILES & SOURIS SUR LA 3D (DÉPLACEMENT 2D HAY DAY : GAUCHE / DROITE / HAUT / BAS + ZOOM)
        ========================================================================= */
@@ -2346,7 +3062,12 @@
           return;
         }
         if (data && data.type === 'orderBoard') {
+          bounceObject(orderBoardGroup);
           openOrdersModal();
+          return;
+        }
+        if (data && data.type === 'barn') {
+          openBarnModal();
           return;
         }
         if (data && data.type === 'roamer') {
@@ -2378,34 +3099,37 @@
       const speedMult = (state.upgrades && state.upgrades.royalHive) ? 0.7 : 1;
       const bonusQty = (state.upgrades && state.upgrades.royalHive) ? 2 : 1;
 
+      // Récolte d'une station de production (ruche, buissons, citronnier) avec gestion du stockage de la grange
+      const harvestStation = (itemId, color, xp) => {
+        const added = storeItem(itemId, bonusQty);
+        if (added <= 0) {
+          warnStorageFull(screenX, screenY);
+          return;
+        }
+        sfxHarvest();
+        st.readyAt = now + st.cooldown * speedMult;
+        const ing = GAME_CONFIG.ingredients[itemId];
+        spawnFloatingText(`+${added} ${ing.icon} ${ing.name} (+${xp} XP)`, screenX, screenY, color);
+        flyIconToHUD(ing.icon, screenX, screenY, 'pill-storage', added);
+        bounceObject(st.group);
+        const gp = st.group.position;
+        spawnBurst3D(gp.x, 1.4, gp.z, [ing.color, 0xffffff, 0xffd166], 16);
+        addXP(xp);
+        saveGame();
+        renderDock();
+      };
+
       if (stationId === 'hive') {
-        sfxHarvest();
-        state.inventory.miel = (state.inventory.miel || 0) + bonusQty;
-        st.readyAt = now + st.cooldown * speedMult;
-        spawnFloatingText(`+${bonusQty} 🍯 Miel (+8 XP)`, screenX, screenY, '#f4b942');
-        addXP(8);
-        saveGame();
-        renderDock();
+        harvestStation('miel', '#f4b942', 8);
       } else if (stationId === 'berries') {
-        sfxHarvest();
-        state.inventory.baies = (state.inventory.baies || 0) + bonusQty;
-        st.readyAt = now + st.cooldown * speedMult;
-        spawnFloatingText(`+${bonusQty} 🫐 Baies (+8 XP)`, screenX, screenY, '#7b2cbf');
-        addXP(8);
-        saveGame();
-        renderDock();
+        harvestStation('baies', '#7b2cbf', 8);
       } else if (stationId === 'lemons') {
         if (!state.upgrades || !state.upgrades.lemonTree) return;
-        sfxHarvest();
-        state.inventory.citron = (state.inventory.citron || 0) + bonusQty;
-        st.readyAt = now + st.cooldown * speedMult;
-        spawnFloatingText(`+${bonusQty} 🍋 Citrons (+10 XP)`, screenX, screenY, '#ffbe0b');
-        addXP(10);
-        saveGame();
-        renderDock();
+        harvestStation('citron', '#ffbe0b', 10);
       } else if (stationId === 'well') {
         sfxSuccess();
         st.readyAt = now + st.cooldown;
+        bounceObject(wellGroup);
         plotsData.forEach(p => {
           if (p.unlocked) {
             p.moisture = 1.0; // Mouille la terre à 100% (devient foncée)
@@ -2447,16 +3171,25 @@
         plot.wateredElapsed = 0;
         plot.duration = Math.max(8, Math.round(ing.growTime * speedMult));
         rebuildPlotPlant3D(plot);
+        plot.pop = 0.4;
+        spawnBurst3D(plot.group.position.x, 0.5, plot.group.position.z, [0x7f5539, 0x95d5b2, 0x6f4518], 10, 0.6);
         addXP(4);
         saveGame();
         const dryHint = plot.moisture <= 0.08 ? ' • 💧 Arrose au puits !' : ` • ${costMsg} +4 XP`;
         spawnFloatingText(`🌱 ${ing.name}${dryHint}`, screenX - 55, screenY, '#52b788');
       } else if (plot.state === 'ready') {
-        sfxHarvest();
         const ing = GAME_CONFIG.ingredients[plot.crop];
         const qty = (state.upgrades && state.upgrades.royalHive) ? 2 : 1;
-        state.inventory[plot.crop] = (state.inventory[plot.crop] || 0) + qty;
-        spawnFloatingText(`+${qty} ${ing.icon} (+8 XP)`, screenX, screenY, '#f4b942');
+        const added = storeItem(plot.crop, qty);
+        if (added <= 0) {
+          warnStorageFull(screenX, screenY);
+          return;
+        }
+        sfxHarvest();
+        spawnFloatingText(`+${added} ${ing.icon} (+8 XP)`, screenX, screenY, '#f4b942');
+        flyIconToHUD(ing.icon, screenX, screenY, 'pill-storage', added);
+        spawnBurst3D(plot.group.position.x, 0.9, plot.group.position.z, [ing.color, 0xffffff, 0x95d5b2], 18);
+        bounceObject(plot.group);
         plot.state = 'empty';
         plot.crop = null;
         plot.wateredElapsed = 0;
@@ -2503,12 +3236,8 @@
         else if (newLvl === 3) unlockMsg = ' • 🍋 Citron, 🦉 Hibou & Citronnier débloqués !';
         else if (newLvl === 4) unlockMsg = ' • 🐝 Ruche Royale débloquée !';
         setTimeout(() => {
-          spawnFloatingText(
-            `🎉 NIVEAU ${newLvl} ATTEINT (+25 🪙)${unlockMsg}`,
-            Math.max(20, window.innerWidth / 2 - 140),
-            window.innerHeight / 4,
-            '#f4b942'
-          );
+          showBanner(`🎉 Niveau ${newLvl} !`, `+25 🪙${unlockMsg}`);
+          spawnBurst3D(-2.5, 4.2, -2.5, [0xff5d8f, 0xffd166, 0x70d6ff, 0x95d5b2, 0xc77dff, 0xffffff], 40, 1.4);
         }, 250);
         renderDock();
       }
@@ -2610,6 +3339,7 @@
       renderDock();
       openOrdersModal();
       spawnFloatingText(`🚚 Livraison envoyée : +${ord.coins} 🪙 +${ord.xp} XP !`, window.innerWidth / 2 - 110, window.innerHeight / 3, '#52b788');
+      flyIconToHUD('🪙', window.innerWidth / 2, window.innerHeight / 3, 'pill-coins', 5);
     }
 
     function rerollOrder(idx) {
@@ -2634,6 +3364,19 @@
       document.getElementById('ui-coins').innerText = state.coins;
       document.getElementById('ui-hearts').innerText = state.hearts;
       document.getElementById('ui-version').innerText = GAME_CONFIG.version;
+
+      // Mise à jour de la Grange & capacité de stockage
+      const used = getStorageUsed();
+      const cap = getStorageCap();
+      const storageEl = document.getElementById('ui-storage');
+      if (storageEl) storageEl.innerText = `${used}/${cap}`;
+      const storagePill = document.getElementById('pill-storage');
+      if (storagePill) storagePill.classList.toggle('storage-full', used >= cap);
+      const barnTag = document.getElementById('barn-tag');
+      if (barnTag) {
+        barnTag.innerText = used >= cap ? `🏚️ Grange PLEINE (${used}/${cap})` : `🏚️ Grange & Marché (${used}/${cap})`;
+        barnTag.className = used >= cap ? 'plot-tag dry-alert' : 'plot-tag';
+      }
 
       const readyOrders = state.orders.filter(canFulfillOrder).length;
       const ordersDot = document.getElementById('orders-dot');
@@ -2701,25 +3444,32 @@
         lemonTreeGroup.visible = true;
         specialStations.lemons.labelEl.style.display = 'block';
         specialStations.lemons.readyAt = Date.now() + 4000;
-        state.inventory.citron = (state.inventory.citron || 0) + 1;
+        storeItem('citron', 1);
+        bounceObject(lemonTreeGroup);
+        spawnBurst3D(lemonTreeGroup.position.x, 2.0, lemonTreeGroup.position.z, [0xffea00, 0x38b000, 0xffffff], 24, 1.2);
       } else if (upgradeId === 'extraPlots') {
         plotsData.forEach(p => {
           if (p.extra) {
             p.unlocked = true;
             p.group.visible = true;
             p.labelEl.style.display = 'block';
+            bounceObject(p.group);
           }
         });
         rebuildGardenFence();
         hiveGroup.position.x = 13.5;
         royalHiveGroup.position.x = 13.5;
         specialStations.hive.labelPos.x = 13.5;
+        spawnBurst3D(9.2, 1.2, 1.4, [0x52b788, 0xf4b942, 0xffffff], 24, 1.2);
       } else if (upgradeId === 'koiPond') {
         koiDecorGroup.visible = true;
         koiFishes.forEach(kf => { kf.mesh.visible = true; });
+        spawnBurst3D(-10.0, 1.2, -7.2, [0xff6b35, 0x00b4d8, 0xffffff], 24, 1.2);
       } else if (upgradeId === 'royalHive') {
         royalHiveGroup.visible = true;
-        state.inventory.miel = (state.inventory.miel || 0) + 1;
+        storeItem('miel', 1);
+        bounceObject(royalHiveGroup);
+        spawnBurst3D(royalHiveGroup.position.x, 1.6, royalHiveGroup.position.z, [0xf4b942, 0xffffff], 24, 1.2);
       }
 
       addXP(15);
@@ -2812,6 +3562,9 @@
         animalJumpTimer = 1.2; // Fait sauter l'animal 3D de joie !
 
         spawnFloatingText(`+10 ⭐ +${coinReward} 🪙 +20 XP`, window.innerWidth / 2 - 65, window.innerHeight / 3);
+        const bubbleRect = document.getElementById('client-bubble-wrapper').getBoundingClientRect();
+        flyIconToHUD('🪙', bubbleRect.left + bubbleRect.width / 2, bubbleRect.top + bubbleRect.height / 2, 'pill-coins', 4);
+        spawnBurst3D(animalAnchor.position.x, 1.8, animalAnchor.position.z, [0xff8fab, 0xffd166, 0xffffff], 22, 1.1);
         addXP(20);
 
         if (prev < animal.maxDrinks && state.friendship[animal.id] >= animal.maxDrinks) {
@@ -2912,6 +3665,22 @@
       const elapsed = clock.getElapsedTime();
       const now = Date.now();
 
+      // Progression du temps du monde & passage au jour suivant à minuit (0.75 du cycle)
+      const prevCycle = ((state.worldTime || 0) / DAY_LENGTH) % 1;
+      state.worldTime = (state.worldTime || 0) + dt;
+      const newCycle = (state.worldTime / DAY_LENGTH) % 1;
+      if (prevCycle < 0.75 && newCycle >= 0.75) {
+        startNewDay((state.day || 1) + 1);
+      }
+
+      // Océan animé à vagues low-poly, écume sur la plage, particules 3D et rebonds
+      updateOcean(elapsed);
+      foamRing.scale.setScalar(1 + Math.sin(elapsed * 1.8) * 0.012);
+      foamMat.opacity = 0.42 + Math.sin(elapsed * 1.8) * 0.16;
+      foamRing2.scale.setScalar(1 + Math.cos(elapsed * 1.4) * 0.015);
+      updateParticles3D(dt);
+      updateBounces(dt);
+
       // Météo dynamique 3D + Oscillation des arbres, fleurs & rotation du moulin selon le vent !
       updateWeather(dt, elapsed);
       const wMult = currentWeather.windMult || 1;
@@ -2922,6 +3691,30 @@
         f.rotation.z = Math.sin(elapsed * 2.2 * wMult + i * 0.7) * (0.06 * wMult);
       });
       windmillBlades.rotation.z -= dt * 1.45 * wMult;
+
+      // Nuages blancs moelleux qui dérivent autour de l'île
+      skyClouds.forEach((sc) => {
+        sc.angle += sc.speed * dt * wMult;
+        sc.group.position.x = Math.cos(sc.angle) * sc.radius;
+        sc.group.position.z = Math.sin(sc.angle) * sc.radius;
+        sc.group.position.y = 6.2 + Math.sin(elapsed * 0.8 + sc.bob) * 0.35;
+        sc.group.rotation.y = -sc.angle;
+      });
+
+      // Papillons 3D qui voltigent autour des fleurs pendant la journée
+      const isNight = currentCyclePos >= 0.55 && currentCyclePos <= 0.9;
+      butterflies.forEach((bf) => {
+        bf.group.visible = !isNight && currentWeather.id !== 'rain';
+        if (!bf.group.visible) return;
+        const a = elapsed * 1.35 + bf.phase;
+        const nx = bf.hx + Math.cos(a) * bf.rad;
+        const nz = bf.hz + Math.sin(a * 1.3) * bf.rad;
+        bf.group.rotation.y = Math.atan2(nx - bf.group.position.x, nz - bf.group.position.z);
+        bf.group.position.set(nx, 0.65 + Math.abs(Math.sin(elapsed * 3.2 + bf.phase)) * 0.45, nz);
+        const flap = Math.sin(elapsed * 18 + bf.phase) * 0.85;
+        bf.wingL.rotation.z = flap;
+        bf.wingR.rotation.z = -flap;
+      });
 
       // Fumée de la cheminée du salon de thé
       smokePuffs.forEach((sp) => {
@@ -2949,8 +3742,8 @@
         }
       }
 
-      // Progression solaire automatique et lucioles lumineuses (crépuscule / nuit)
-      updateSolarCycle(elapsed);
+      // Progression solaire automatique (basée sur state.worldTime sauvegardé !) et lucioles lumineuses
+      updateSolarCycle(state.worldTime);
       fireflies.forEach((f) => {
         if (!f.mesh.visible) return;
         f.mesh.position.x = f.baseX + Math.sin(elapsed * 1.5 + f.phase) * 0.6;
@@ -3032,10 +3825,14 @@
       bubbleEl.style.top = `${bubblePos.y}px`;
       bubbleEl.style.opacity = animalWalkProgress >= 0.95 ? '1' : '0';
 
-      // Position de l'étiquette 3D du Tableau de Commandes
+      // Position de l'étiquette 3D du Tableau de Commandes et de la Grande Grange
       const boardPos = toScreenPosition(new THREE.Vector3(-7.8, 2.2, -1.2));
       orderBoardLabelEl.style.left = `${boardPos.x}px`;
       orderBoardLabelEl.style.top = `${boardPos.y}px`;
+
+      const barnPos = toScreenPosition(barnLabelPos);
+      barnLabelEl.style.left = `${barnPos.x}px`;
+      barnLabelEl.style.top = `${barnPos.y}px`;
 
       // Assèchement progressif du sol (ou hydratation sous la pluie !) & Croissance 3D conditionnée par l'humidité !
       let anyPlotDry = false;
@@ -3078,11 +3875,19 @@
           }
 
           const progress = Math.min(1, plot.wateredElapsed / plot.duration);
-          const scale = 0.25 + progress * 0.85;
+          const scale = 0.38 + progress * 0.72;
           plot.plantHolder.scale.setScalar(scale);
 
-          if (progress >= 1) {
+          if (progress >= 1 && plot.state !== 'ready') {
             plot.state = 'ready';
+            spawnBurst3D(plot.group.position.x, 0.85, plot.group.position.z, [ing.color, 0xffffff], 10, 0.7);
+          }
+
+          if (getPlotStage(plot) !== plot.stage) {
+            rebuildPlotPlant3D(plot);
+          }
+
+          if (plot.state === 'ready') {
             plot.plantHolder.rotation.z = 0;
             plot.plantHolder.position.y = 0.25 + Math.abs(Math.sin(elapsed * 5)) * 0.12;
             tagEl.className = 'plot-tag ready';
