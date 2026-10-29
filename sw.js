@@ -1,8 +1,9 @@
-const CACHE_VERSION = 'refuge-v1.0.0';
+const CACHE_VERSION = 'refuge-v2.0.0';
 const ASSETS = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'
 ];
 
 self.addEventListener('install', (event) => {
