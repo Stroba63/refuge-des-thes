@@ -328,6 +328,7 @@
         📖
         <span class="badge-dot" id="album-dot"></span>
       </button>
+      <button class="icon-btn" id="btn-time" onclick="toggleTimeOfDay()" title="Changer l'heure (Jour / Crépuscule / Nuit)">☀️</button>
       <button class="icon-btn" id="btn-music" onclick="toggleMusic()" title="Musique de fond">🎵</button>
       <button class="icon-btn" id="btn-sound" onclick="toggleSound()" title="Effets sonores">🔊</button>
     </div>
@@ -338,7 +339,7 @@
     <div class="dock-panel">
       <div class="dock-header">
         <span>🌱 Toucher un carré de terre 3D pour planter/récolter :</span>
-        <span id="ui-version">v2.2.1</span>
+        <span id="ui-version">v2.3.0</span>
       </div>
       <div class="seeds-row" id="seeds-row"></div>
 
@@ -396,7 +397,7 @@
        1. CONFIGURATION ET TEXTES DU JEU
        ========================================================================= */
     const GAME_CONFIG = {
-      version: "v2.2.1",
+      version: "v2.3.0",
       grandGoalHearts: 50,
       grandGiftTitle: "Diplôme de Maître Herboriste 🏆",
       grandGiftMessage: "Félicitations ! Grâce à ton savoir-faire et tes récoltes, le Refuge des Thés est devenu l'adresse la plus réputée de la vallée. Tous les habitants de la forêt viennent goûter tes infusions artisanales !",
@@ -712,111 +713,293 @@
     sunLight.shadow.camera.bottom = -d;
     scene.add(sunLight);
 
-    // Matériaux réutilisables
-    const matGrass = new THREE.MeshLambertMaterial({ color: 0x7cb518 });
-    const matEarth = new THREE.MeshLambertMaterial({ color: 0x8d5b4c });
-    const matWater = new THREE.MeshLambertMaterial({ color: 0x48cae4, transparent: true, opacity: 0.85 });
-    const matWood = new THREE.MeshLambertMaterial({ color: 0xa47148 });
+    // Matériaux réutilisables aux teintes douces et naturelles (façon Hay Day / Cozy Game)
+    const matGrass = new THREE.MeshLambertMaterial({ color: 0x6a994e });
+    const matGrassHill = new THREE.MeshLambertMaterial({ color: 0x588157 });
+    const matSand = new THREE.MeshLambertMaterial({ color: 0xe9d8a6 });
+    const matEarth = new THREE.MeshLambertMaterial({ color: 0x7f5539 });
+    const matWater = new THREE.MeshLambertMaterial({ color: 0x48cae4, transparent: true, opacity: 0.88 });
+    const matWood = new THREE.MeshLambertMaterial({ color: 0xb07d52 });
     const matWoodDark = new THREE.MeshLambertMaterial({ color: 0x6f4518 });
     const matStone = new THREE.MeshLambertMaterial({ color: 0xd6ccc2 });
+    const matStoneDark = new THREE.MeshLambertMaterial({ color: 0x9c958d });
+    const matWindowGlow = new THREE.MeshBasicMaterial({ color: 0xffe599 });
+    const matLanternGlow = new THREE.MeshBasicMaterial({ color: 0xffb703 });
 
-    // 4.1 Île principale & Rivière
-    const waterMesh = new THREE.Mesh(new THREE.CylinderGeometry(24, 24, 0.6, 32), matWater);
-    waterMesh.position.y = -1.2;
+    // Lumière chaude des lanternes (s'intensifie au crépuscule et la nuit)
+    const lanternLight = new THREE.PointLight(0xff9f1c, 0.25, 11);
+    lanternLight.position.set(-3.2, 2.2, 0.2);
+    scene.add(lanternLight);
+
+    // 4.1 Île principale agrandie, Plage de sable, Collines, Rivière & Cascade animée
+    const waterMesh = new THREE.Mesh(new THREE.CylinderGeometry(30, 30, 0.6, 36), matWater);
+    waterMesh.position.y = -1.15;
     scene.add(waterMesh);
 
-    const islandBase = new THREE.Mesh(new THREE.CylinderGeometry(10.5, 9.2, 1.8, 12), matEarth);
-    islandBase.position.y = -0.9;
+    const islandBase = new THREE.Mesh(new THREE.CylinderGeometry(12.2, 10.4, 1.9, 18), matEarth);
+    islandBase.position.y = -0.95;
     scene.add(islandBase);
 
-    const islandTop = new THREE.Mesh(new THREE.CylinderGeometry(10.8, 10.5, 0.5, 12), matGrass);
-    islandTop.position.y = -0.15;
+    const sandShore = new THREE.Mesh(new THREE.CylinderGeometry(12.5, 12.1, 0.45, 18), matSand);
+    sandShore.position.y = -0.22;
+    sandShore.receiveShadow = true;
+    scene.add(sandShore);
+
+    const islandTop = new THREE.Mesh(new THREE.CylinderGeometry(11.6, 11.9, 0.5, 18), matGrass);
+    islandTop.position.y = -0.14;
     islandTop.receiveShadow = true;
     scene.add(islandTop);
 
-    // Chemin en pierres reliant le comptoir à l'entrée du potager
-    for (let i = 0; i < 5; i++) {
-      const stone = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.55, 0.12, 7), matStone);
-      stone.position.set(-2.0 + i * 0.6, 0.11, 1.9 - i * 0.2);
-      stone.rotation.y = i * 1.1;
-      stone.receiveShadow = true;
-      scene.add(stone);
+    // Colline verdoyante en arrière-plan sous le moulin
+    const hillSub = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 5.2, 0.65, 12), matGrassHill);
+    hillSub.position.set(2.3, 0.22, -5.2);
+    hillSub.receiveShadow = true;
+    scene.add(hillSub);
+
+    // Falaise rocheuse & Cascade au Nord-Ouest
+    const cliffGroup = new THREE.Group();
+    cliffGroup.position.set(-5.8, 0.1, -5.6);
+    const rock1 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.7), matStoneDark);
+    rock1.position.set(0, 0.9, 0);
+    rock1.scale.set(1.2, 1.35, 1);
+    rock1.castShadow = true;
+    rock1.receiveShadow = true;
+    cliffGroup.add(rock1);
+
+    const rock2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.2), matStone);
+    rock2.position.set(1.4, 0.65, 0.4);
+    rock2.castShadow = true;
+    cliffGroup.add(rock2);
+
+    const waterfallStream = new THREE.Mesh(
+      new THREE.BoxGeometry(0.85, 1.9, 0.35),
+      new THREE.MeshBasicMaterial({ color: 0x90e0ef, transparent: true, opacity: 0.85 })
+    );
+    waterfallStream.position.set(0.3, 0.85, 0.95);
+    waterfallStream.rotation.x = -0.25;
+    cliffGroup.add(waterfallStream);
+
+    const pondMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.9, 1.9, 0.08, 14),
+      new THREE.MeshBasicMaterial({ color: 0x48cae4 })
+    );
+    pondMesh.position.set(0.4, 0.03, 2.1);
+    cliffGroup.add(pondMesh);
+
+    // Nénuphars sur le bassin
+    const lilyMat = new THREE.MeshLambertMaterial({ color: 0x38b000 });
+    [[-0.2, 1.8], [0.9, 2.3], [0.3, 2.9]].forEach(([lx, lz]) => {
+      const lily = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.04, 9), lilyMat);
+      lily.position.set(lx, 0.08, lz);
+      cliffGroup.add(lily);
+    });
+    scene.add(cliffGroup);
+
+    // Écume animée au pied de la cascade
+    const waterfallDrops = [];
+    for (let i = 0; i < 6; i++) {
+      const drop = new THREE.Mesh(
+        new THREE.SphereGeometry(0.16, 6, 6),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 })
+      );
+      drop.position.set(-5.8 + (Math.random() - 0.5) * 0.7, 0.2 + i * 0.28, -4.5);
+      scene.add(drop);
+      waterfallDrops.push(drop);
     }
 
-    // 4.2 Le Chalet / Salon de Thé 3D
+    // Ponton d'accueil en bois à l'Ouest (par où arrivent les animaux !)
+    const dockGroup = new THREE.Group();
+    dockGroup.position.set(-9.2, 0.05, 0.9);
+    for (let p = 0; p < 7; p++) {
+      const plank = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.12, 1.75), matWood);
+      plank.position.set(p * 0.52, 0.08, 0);
+      plank.castShadow = true;
+      plank.receiveShadow = true;
+      dockGroup.add(plank);
+    }
+    [[-0.1, -0.85], [-0.1, 0.85], [3.1, -0.85], [3.1, 0.85]].forEach(([px, pz]) => {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.12, 1.4, 7), matWoodDark);
+      post.position.set(px, -0.2, pz);
+      post.castShadow = true;
+      dockGroup.add(post);
+    });
+    // Lanterne du ponton
+    const dockPole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.5, 6), matWoodDark);
+    dockPole.position.set(0.1, 0.8, -0.85);
+    dockGroup.add(dockPole);
+    const dockLantern = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), matLanternGlow);
+    dockLantern.position.set(0.1, 1.55, -0.85);
+    dockGroup.add(dockLantern);
+    scene.add(dockGroup);
+
+    // Chemins en pierres (du ponton au comptoir, puis du comptoir au potager)
+    const stoneCoords = [
+      [-5.6, 0.9], [-4.6, 0.95], [-3.6, 0.95],
+      [-2.0, 1.9], [-1.4, 1.7], [-0.8, 1.5], [-0.2, 1.3], [0.4, 1.1]
+    ];
+    stoneCoords.forEach(([sx, sz], i) => {
+      const stone = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.52, 0.1, 7), matStone);
+      stone.position.set(sx, 0.11, sz);
+      stone.rotation.y = i * 0.9;
+      stone.receiveShadow = true;
+      scene.add(stone);
+    });
+
+    // 4.2 Le Chalet / Salon de Thé 3D détaillé (Colombages, Cheminée fumante, Terrasse & Auvent)
     const chaletGroup = new THREE.Group();
     chaletGroup.position.set(-2.5, 0.1, -2.5);
 
+    // Terrasse en bois sous et devant le chalet
+    const deckMesh = new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.14, 4.8), matWood);
+    deckMesh.position.set(-0.4, 0.07, 0.4);
+    deckMesh.receiveShadow = true;
+    chaletGroup.add(deckMesh);
+
     const bodyMesh = new THREE.Mesh(
-      new THREE.BoxGeometry(3.4, 2.2, 2.6),
+      new THREE.BoxGeometry(3.6, 2.3, 2.7),
       new THREE.MeshLambertMaterial({ color: 0xfaedcd })
     );
-    bodyMesh.position.y = 1.1;
+    bodyMesh.position.y = 1.22;
     bodyMesh.castShadow = true;
     bodyMesh.receiveShadow = true;
     chaletGroup.add(bodyMesh);
 
-    // Toit du chalet
+    // Poutres de colombages en bois sur le chalet
+    [[-1.76, 1.22, 1.32], [1.76, 1.22, 1.32], [-1.76, 1.22, -1.32], [1.76, 1.22, -1.32]].forEach(([bx, by, bz]) => {
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.32, 0.14), matWoodDark);
+      beam.position.set(bx, by, bz);
+      chaletGroup.add(beam);
+    });
+
+    // Fenêtres éclairées avec volets
+    [[-1.05, 1.45, 1.36], [1.05, 1.45, 1.36]].forEach(([wx, wy, wz]) => {
+      const winFrame = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.62, 0.08), matWoodDark);
+      winFrame.position.set(wx, wy, wz);
+      chaletGroup.add(winFrame);
+      const winGlass = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.48, 0.1), matWindowGlow);
+      winGlass.position.set(wx, wy, wz);
+      chaletGroup.add(winGlass);
+    });
+
+    // Toit du chalet + Cheminée en pierre
     const roofMesh = new THREE.Mesh(
-      new THREE.ConeGeometry(2.8, 1.6, 4),
-      new THREE.MeshLambertMaterial({ color: 0xe07a5f })
+      new THREE.ConeGeometry(3.05, 1.75, 4),
+      new THREE.MeshLambertMaterial({ color: 0xd95d39 })
     );
-    roofMesh.position.y = 2.9;
+    roofMesh.position.y = 3.15;
     roofMesh.rotation.y = Math.PI / 4;
     roofMesh.castShadow = true;
     chaletGroup.add(roofMesh);
 
+    const chimneyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1.45, 0.55), matStoneDark);
+    chimneyMesh.position.set(-1.1, 3.35, -0.5);
+    chimneyMesh.castShadow = true;
+    chaletGroup.add(chimneyMesh);
+
+    // Nuages de fumée 3D qui s'échappent de la cheminée
+    const smokePuffs = [];
+    const smokeMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 });
+    for (let s = 0; s < 4; s++) {
+      const puff = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), smokeMat);
+      puff.position.set(-1.1, 4.1 + s * 0.45, -0.5);
+      chaletGroup.add(puff);
+      smokePuffs.push({ mesh: puff, offset: s * 0.25 });
+    }
+
+    // Auvent au-dessus du comptoir
+    const awningMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(3.4, 0.14, 1.15),
+      new THREE.MeshLambertMaterial({ color: 0xe07a5f })
+    );
+    awningMesh.position.set(0, 2.05, 1.7);
+    awningMesh.rotation.x = 0.28;
+    awningMesh.castShadow = true;
+    chaletGroup.add(awningMesh);
+
     // Comptoir en bois devant le chalet
-    const counterMesh = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.9, 0.9), matWood);
-    counterMesh.position.set(0, 0.45, 1.6);
+    const counterMesh = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.95, 0.95), matWoodDark);
+    counterMesh.position.set(0, 0.52, 1.65);
     counterMesh.castShadow = true;
     counterMesh.receiveShadow = true;
     chaletGroup.add(counterMesh);
 
-    // Tasse de thé géante / Théière sur le comptoir
+    const counterTop = new THREE.Mesh(new THREE.BoxGeometry(3.45, 0.12, 1.08), matWood);
+    counterTop.position.set(0, 1.02, 1.65);
+    chaletGroup.add(counterTop);
+
+    // Théière en porcelaine + 2 petites tasses + tonneau de thé à côté du chalet
     const kettleMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.35, 12, 12),
+      new THREE.SphereGeometry(0.32, 12, 12),
       new THREE.MeshLambertMaterial({ color: 0xffffff })
     );
-    kettleMesh.position.set(0.6, 1.15, 1.6);
+    kettleMesh.position.set(0.65, 1.32, 1.65);
     chaletGroup.add(kettleMesh);
+
+    const barrelMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.38, 0.72, 10), matWood);
+    barrelMesh.position.set(-2.25, 0.48, 1.2);
+    barrelMesh.castShadow = true;
+    chaletGroup.add(barrelMesh);
+
+    // Petite table ronde de salon de thé sur la terrasse gauche
+    const patioTable = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.08, 12), matWood);
+    patioTable.position.set(-2.3, 0.68, 2.2);
+    patioTable.castShadow = true;
+    chaletGroup.add(patioTable);
+    const patioLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.6, 8), matWoodDark);
+    patioLeg.position.set(-2.3, 0.38, 2.2);
+    chaletGroup.add(patioLeg);
 
     scene.add(chaletGroup);
 
-    // 4.3 Arbres décoratifs qui oscillent au vent
+    // 4.3 Arbres décoratifs variés (Chênes ronds, Pins & Cerisier rose) + Buissons
     const trees = [];
-    function createTree(x, z, scale = 1, tint = 0x52b788) {
+    function createTree(x, z, scale = 1, tint = 0x52b788, yBase = 0.1) {
       const g = new THREE.Group();
-      g.position.set(x, 0.1, z);
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.28, 1.1, 7), matWoodDark);
-      trunk.position.y = 0.55;
+      g.position.set(x, yBase, z);
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.28, 1.15, 7), matWoodDark);
+      trunk.position.y = 0.57;
       trunk.castShadow = true;
       g.add(trunk);
 
       const leavesMat = new THREE.MeshLambertMaterial({ color: tint });
       const crown1 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.95), leavesMat);
-      crown1.position.y = 1.5;
+      crown1.position.y = 1.55;
       crown1.castShadow = true;
       g.add(crown1);
 
-      const crown2 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.65), leavesMat);
-      crown2.position.set(0.3, 2.1, 0.2);
+      const crown2 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.68), leavesMat);
+      crown2.position.set(0.32, 2.15, 0.2);
       crown2.castShadow = true;
       g.add(crown2);
+
+      const crown3 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.55), leavesMat);
+      crown3.position.set(-0.3, 1.9, -0.22);
+      crown3.castShadow = true;
+      g.add(crown3);
 
       g.scale.setScalar(scale);
       scene.add(g);
       trees.push(g);
     }
-    createTree(-6.2, -3.2, 1.15, 0x40916c);
-    createTree(-5.5, 2.8, 0.9, 0x52b788);
-    createTree(-0.5, -5.8, 1.05, 0x74c69d);
-    createTree(6.4, -2.2, 0.95, 0x52b788);
-    createTree(6.2, 3.9, 1.05, 0x40916c);
+    createTree(-7.2, -2.5, 1.2, 0x40916c);
+    createTree(-6.4, 3.6, 1.0, 0xffafcc); // Joli cerisier en fleurs roses !
+    createTree(-1.2, -6.5, 1.15, 0x52b788);
+    createTree(6.8, -2.5, 1.05, 0x74c69d);
+    createTree(6.6, 3.9, 1.1, 0x40916c);
+    createTree(-2.8, 6.2, 0.95, 0xffafcc); // Second petit cerisier au Sud
 
-    // 4.3b Moulin à vent Hay Day amélioré (axe déporté & incliné sans collision)
+    // Petits buissons et rochers décoratifs
+    const bushMat = new THREE.MeshLambertMaterial({ color: 0x386641 });
+    [[-4.8, -1.2, 0.5], [0.2, -3.5, 0.45], [5.8, -4.6, 0.55], [-4.5, 5.2, 0.48], [5.9, 1.2, 0.42]].forEach(([bx, bz, br]) => {
+      const bush = new THREE.Mesh(new THREE.DodecahedronGeometry(br), bushMat);
+      bush.position.set(bx, 0.1 + br * 0.6, bz);
+      bush.castShadow = true;
+      scene.add(bush);
+    });
+
+    // 4.3b Moulin à vent Hay Day sur la colline (axe déporté & incliné sans collision)
     const windmillGroup = new THREE.Group();
-    windmillGroup.position.set(2.3, 0.1, -5.0);
+    windmillGroup.position.set(2.3, 0.54, -5.0); // Posé au sommet de la colline !
     windmillGroup.rotation.y = Math.PI / 7;
 
     const millBase = new THREE.Mesh(
@@ -861,7 +1044,7 @@
 
     const millWindow = new THREE.Mesh(
       new THREE.CylinderGeometry(0.24, 0.24, 0.12, 12),
-      new THREE.MeshLambertMaterial({ color: 0xfff3b0 })
+      matWindowGlow
     );
     millWindow.rotation.x = Math.PI / 2;
     millWindow.position.set(0, 2.15, 0.92);
@@ -941,7 +1124,7 @@
     windmillGroup.add(windmillBlades);
     scene.add(windmillGroup);
 
-    // 4.3c Fleurs colorées sur l'herbe façon Hay Day
+    // 4.3c Fleurs colorées sur l'herbe façon Hay Day + Lucioles nocturnes
     const flowers = [];
     const flowerStemMat = new THREE.MeshLambertMaterial({ color: 0x38b000 });
     const flowerCenterMat = new THREE.MeshLambertMaterial({ color: 0xffbe0b });
@@ -974,72 +1157,172 @@
     }
 
     const flowerSpots = [
-      [-4.6, -0.4, 0xff5d8f, 1.1], [-4.9, 0.2, 0xffffff, 0.95], [-4.2, 0.5, 0xffbe0b, 1.0],
+      [-5.6, -0.4, 0xff5d8f, 1.1], [-5.9, 0.2, 0xffffff, 0.95], [-5.2, -0.6, 0xffbe0b, 1.0],
       [-3.8, 3.4, 0xff8fab, 1.15], [-3.2, 3.9, 0xffffff, 0.9],  [-4.4, 3.8, 0x70d6ff, 1.05],
       [-1.4, 4.3, 0xffbe0b, 1.1],  [-0.8, 4.7, 0xff5d8f, 0.95], [-1.9, 4.9, 0xffffff, 1.0],
       [-0.6, 2.8, 0x70d6ff, 0.9],  [-0.2, 2.3, 0xff8fab, 1.05],
-      [-5.2, -1.8, 0xffbe0b, 1.0], [-4.7, -4.4, 0xff5d8f, 1.1], [-3.9, -4.8, 0xffffff, 0.95],
-      [0.3, -4.2, 0xff8fab, 1.0],  [4.3, -4.5, 0xffbe0b, 1.1],  [4.8, -3.9, 0xffffff, 0.95],
+      [-5.8, -2.2, 0xffbe0b, 1.0], [-3.4, -5.2, 0xff5d8f, 1.1], [-2.8, -5.6, 0xffffff, 0.95],
       [6.3, 0.4, 0xff5d8f, 1.1],   [6.6, 1.1, 0x70d6ff, 0.95],  [6.1, 1.7, 0xffffff, 1.0],
-      [2.8, 5.6, 0xffbe0b, 1.1],   [3.5, 5.8, 0xff5d8f, 0.95],  [1.9, 5.7, 0xffffff, 1.05]
+      [2.8, 5.6, 0xffbe0b, 1.1],   [3.5, 5.8, 0xff5d8f, 0.95],  [1.9, 5.7, 0xffffff, 1.05],
+      [7.4, -0.6, 0xffbe0b, 1.05], [7.8, 0.2, 0xffffff, 0.95],   [-6.8, 2.2, 0xff8fab, 1.1]
     ];
     flowerSpots.forEach(([fx, fz, fcol, fsc]) => createFlower(fx, fz, fcol, fsc));
 
-    // 4.4 L'Animal Client 3D (Modélisé dynamiquement)
+    // Lucioles 3D pour le crépuscule et la nuit
+    const fireflies = [];
+    const fireflyMat = new THREE.MeshBasicMaterial({ color: 0xffe66d });
+    for (let f = 0; f < 16; f++) {
+      const fly = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), fireflyMat);
+      const angle = (f / 16) * Math.PI * 2;
+      const rad = 2.5 + (f % 4) * 1.8;
+      fly.position.set(Math.cos(angle) * rad, 0.8 + (f % 3) * 0.5, Math.sin(angle) * rad);
+      fly.visible = false;
+      scene.add(fly);
+      fireflies.push({ mesh: fly, baseX: fly.position.x, baseZ: fly.position.z, phase: f * 1.3 });
+    }
+
+    // Cycle Jour / Crépuscule / Nuit
+    let timeMode = 0; // 0 = Jour, 1 = Crépuscule, 2 = Nuit
+    function toggleTimeOfDay() {
+      sfxClick();
+      timeMode = (timeMode + 1) % 3;
+      const btn = document.getElementById('btn-time');
+      if (timeMode === 0) {
+        btn.innerText = '☀️';
+        scene.background.setHex(0x90dbf4);
+        ambientLight.color.setHex(0xfff5e4);
+        ambientLight.intensity = 0.72;
+        sunLight.color.setHex(0xfff1d0);
+        sunLight.intensity = 0.85;
+        lanternLight.intensity = 0.2;
+        fireflies.forEach(f => f.mesh.visible = false);
+      } else if (timeMode === 1) {
+        btn.innerText = '🌅';
+        scene.background.setHex(0xf4a261);
+        ambientLight.color.setHex(0xffcba4);
+        ambientLight.intensity = 0.58;
+        sunLight.color.setHex(0xff7b00);
+        sunLight.intensity = 0.9;
+        lanternLight.intensity = 1.1;
+        fireflies.forEach(f => f.mesh.visible = true);
+      } else {
+        btn.innerText = '🌙';
+        scene.background.setHex(0x1d3557);
+        ambientLight.color.setHex(0x457b9d);
+        ambientLight.intensity = 0.45;
+        sunLight.color.setHex(0xa8dadc);
+        sunLight.intensity = 0.42;
+        lanternLight.intensity = 1.6;
+        fireflies.forEach(f => f.mesh.visible = true);
+      }
+    }
+
+    // 4.4 L'Animal Client 3D détaillé (Pattes, Museau, Queue, Écharpe & Animation de marche depuis le ponton)
     const animalAnchor = new THREE.Group();
-    animalAnchor.position.set(-2.5, 0.1, 0.9); // Devant le comptoir
+    animalAnchor.position.set(-2.5, 0.1, 0.9);
     scene.add(animalAnchor);
 
     let activeAnimalMesh = null;
+    let activeAnimalLegs = [];
     let animalJumpTimer = 0;
+    let animalWalkProgress = 1; // 0 = sur le ponton (-8.0), 1 = arrivé au comptoir (-2.5)
 
-    function build3DAnimal(animalCfg) {
+    function build3DAnimal(animalCfg, walkFromDock = false) {
       if (activeAnimalMesh) animalAnchor.remove(activeAnimalMesh);
       const group = new THREE.Group();
+      activeAnimalLegs = [];
 
       const bodyMat = new THREE.MeshLambertMaterial({ color: animalCfg.color });
       const earMat = new THREE.MeshLambertMaterial({ color: animalCfg.earColor });
+      const whiteMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
       const eyeMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
+      const noseMat = new THREE.MeshLambertMaterial({ color: 0xff758f });
+      const scarfMat = new THREE.MeshLambertMaterial({ color: 0xe63946 });
 
-      // Corps
-      const body = new THREE.Mesh(new THREE.SphereGeometry(0.55, 14, 14), bodyMat);
-      body.scale.set(1, 0.9, 1.1);
-      body.position.y = 0.5;
+      // 4 Pattes articulées
+      const legPositions = [[-0.24, 0.22, 0.25], [0.24, 0.22, 0.25], [-0.24, 0.22, -0.25], [0.24, 0.22, -0.25]];
+      legPositions.forEach(([lx, ly, lz]) => {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.1, 0.36, 8), bodyMat);
+        leg.position.set(lx, ly, lz);
+        leg.castShadow = true;
+        group.add(leg);
+        activeAnimalLegs.push(leg);
+      });
+
+      // Corps dodu
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.52, 14, 14), bodyMat);
+      body.scale.set(0.95, 0.88, 1.15);
+      body.position.y = 0.62;
       body.castShadow = true;
       group.add(body);
 
+      // Ventre clair
+      const belly = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 12), whiteMat);
+      belly.position.set(0, 0.6, 0.25);
+      group.add(belly);
+
+      // Petite écharpe rouge autour du cou
+      const scarf = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.42, 0.14, 12), scarfMat);
+      scarf.position.set(0, 0.96, 0.12);
+      group.add(scarf);
+
       // Tête
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 14, 14), bodyMat);
-      head.position.set(0, 1.15, 0.2);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.46, 14, 14), bodyMat);
+      head.position.set(0, 1.28, 0.18);
       head.castShadow = true;
       group.add(head);
 
-      // Yeux
-      const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), eyeMat);
-      eyeL.position.set(-0.18, 1.22, 0.62);
+      // Museau + Truffe
+      const snout = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), whiteMat);
+      snout.scale.set(1, 0.75, 0.9);
+      snout.position.set(0, 1.2, 0.56);
+      group.add(snout);
+
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), noseMat);
+      nose.position.set(0, 1.25, 0.72);
+      group.add(nose);
+
+      // Yeux expressifs avec reflets blancs
+      const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.068, 8, 8), eyeMat);
+      eyeL.position.set(-0.18, 1.35, 0.58);
       const eyeR = eyeL.clone();
       eyeR.position.x = 0.18;
       group.add(eyeL, eyeR);
 
-      // Oreilles selon l'espèce
+      // Oreilles et Queue selon l'espèce
       if (animalCfg.id === 'lapin') {
-        const earGeo = new THREE.CylinderGeometry(0.09, 0.11, 0.65, 8);
-        const ear1 = new THREE.Mesh(earGeo, earMat);
-        ear1.position.set(-0.2, 1.75, 0.15);
-        ear1.rotation.z = 0.15;
+        const earGeo = new THREE.CylinderGeometry(0.09, 0.11, 0.68, 8);
+        const ear1 = new THREE.Mesh(earGeo, bodyMat);
+        ear1.position.set(-0.18, 1.88, 0.12);
+        ear1.rotation.z = 0.12;
         const ear2 = ear1.clone();
-        ear2.position.x = 0.2;
-        ear2.rotation.z = -0.15;
+        ear2.position.x = 0.18;
+        ear2.rotation.z = -0.12;
         group.add(ear1, ear2);
+
+        const tail = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), whiteMat);
+        tail.position.set(0, 0.62, -0.58);
+        group.add(tail);
       } else {
         const earGeo = new THREE.ConeGeometry(0.18, 0.38, 6);
         const ear1 = new THREE.Mesh(earGeo, earMat);
-        ear1.position.set(-0.26, 1.6, 0.15);
+        ear1.position.set(-0.26, 1.72, 0.12);
         ear1.rotation.z = 0.25;
         const ear2 = ear1.clone();
         ear2.position.x = 0.26;
         ear2.rotation.z = -0.25;
         group.add(ear1, ear2);
+
+        if (animalCfg.id === 'renard' || animalCfg.id === 'chat') {
+          const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.15, 0.65, 8), bodyMat);
+          tail.position.set(0, 0.75, -0.68);
+          tail.rotation.x = -0.65;
+          group.add(tail);
+        } else if (animalCfg.id === 'herisson') {
+          const spikes = new THREE.Mesh(new THREE.DodecahedronGeometry(0.48), earMat);
+          spikes.position.set(0, 0.72, -0.18);
+          group.add(spikes);
+        }
       }
 
       // Zone cliquable invisible pour faciliter le toucher sur mobile
@@ -1053,6 +1336,7 @@
 
       animalAnchor.add(group);
       activeAnimalMesh = group;
+      animalWalkProgress = walkFromDock ? 0 : 1;
     }
 
     // 4.5 Les 6 Parcelles de Potager 3D (Cliquables en 3D !)
@@ -1381,7 +1665,10 @@
         }
 
         state.currentAnimalIndex = (state.currentAnimalIndex + 1) % GAME_CONFIG.animals.length;
-        build3DAnimal(GAME_CONFIG.animals[state.currentAnimalIndex]);
+        setTimeout(() => {
+          build3DAnimal(GAME_CONFIG.animals[state.currentAnimalIndex], true);
+          updateHUD();
+        }, 550);
         saveGame();
         renderDock();
       } else {
@@ -1477,23 +1764,61 @@
       });
       windmillBlades.rotation.z -= dt * 1.45;
 
-      // Animation de l'animal 3D
+      // Fumée de la cheminée du salon de thé
+      smokePuffs.forEach((sp) => {
+        const cycle = (elapsed * 0.45 + sp.offset) % 1;
+        sp.mesh.position.y = 4.0 + cycle * 2.2;
+        sp.mesh.position.x = -1.1 + Math.sin(elapsed * 2 + sp.offset * 6) * 0.22;
+        const s = 0.55 + cycle * 1.1;
+        sp.mesh.scale.setScalar(s);
+      });
+
+      // Écume animée de la cascade
+      waterfallDrops.forEach((drop, i) => {
+        drop.position.y = 0.15 + Math.abs(Math.sin(elapsed * 5 + i * 1.1)) * 0.42;
+        drop.scale.setScalar(0.75 + Math.sin(elapsed * 6 + i) * 0.25);
+      });
+
+      // Lucioles lumineuses (crépuscule / nuit)
+      if (timeMode > 0) {
+        fireflies.forEach((f) => {
+          f.mesh.position.x = f.baseX + Math.sin(elapsed * 1.5 + f.phase) * 0.6;
+          f.mesh.position.z = f.baseZ + Math.cos(elapsed * 1.3 + f.phase) * 0.6;
+          f.mesh.position.y = 0.7 + Math.sin(elapsed * 2.4 + f.phase) * 0.35;
+        });
+      }
+
+      // Animation de marche et de joie de l'animal 3D
       if (activeAnimalMesh) {
-        if (animalJumpTimer > 0) {
+        if (animalWalkProgress < 1) {
+          animalWalkProgress = Math.min(1, animalWalkProgress + dt * 0.75);
+          animalAnchor.position.x = -8.0 + animalWalkProgress * 5.5;
+          activeAnimalMesh.position.y = Math.abs(Math.sin(elapsed * 11)) * 0.14;
+          activeAnimalMesh.rotation.y = Math.PI / 2;
+          activeAnimalLegs.forEach((leg, li) => {
+            leg.rotation.x = Math.sin(elapsed * 14 + (li % 2) * Math.PI) * 0.45;
+          });
+        } else if (animalJumpTimer > 0) {
           animalJumpTimer -= dt;
+          animalAnchor.position.x = -2.5;
           activeAnimalMesh.position.y = Math.abs(Math.sin(elapsed * 14)) * 0.65;
           activeAnimalMesh.rotation.y += dt * 6;
         } else {
+          animalAnchor.position.x = -2.5;
           activeAnimalMesh.position.y = Math.abs(Math.sin(elapsed * 2.5)) * 0.06;
           activeAnimalMesh.rotation.y = Math.sin(elapsed * 1.2) * 0.2;
+          activeAnimalLegs.forEach((leg) => {
+            leg.rotation.x = 0;
+          });
         }
       }
 
       // Position de la bulle de commande au-dessus de l'animal 3D
-      const bubblePos = toScreenPosition(new THREE.Vector3(-2.5, 2.35, 0.9));
+      const bubblePos = toScreenPosition(new THREE.Vector3(animalAnchor.position.x, 2.45, 0.9));
       const bubbleEl = document.getElementById('client-bubble-wrapper');
       bubbleEl.style.left = `${bubblePos.x}px`;
       bubbleEl.style.top = `${bubblePos.y}px`;
+      bubbleEl.style.opacity = animalWalkProgress >= 0.95 ? '1' : '0';
 
       // Croissance 3D en temps réel des cultures
       plotsData.forEach(plot => {
