@@ -1,0 +1,17 @@
+{
+  "name": "Le Refuge des Thés",
+  "short_name": "Le Refuge",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fdf8f2",
+  "theme_color": "#6b8e63",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='115' fill='%236b8e63'/%3E%3Ccircle cx='256' cy='256' r='190' fill='%23fdf8f2'/%3E%3Cpath d='M160 220 h160 v80 a80 80 0 0 1 -160 0 z' fill='%23d98a6c'/%3E%3Cpath d='M320 235 h25 a25 25 0 0 1 0 50 h-25' fill='none' stroke='%23d98a6c' stroke-width='18' stroke-linecap='round'/%3E%3Cpath d='M130 325 h220' stroke='%238c6d53' stroke-width='16' stroke-linecap='round'/%3E%3Cpath d='M210 190 q15 -30 0 -55 M260 190 q15 -30 0 -55' fill='none' stroke='%236b8e63' stroke-width='12' stroke-linecap='round'/%3E%3C/svg%3E",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

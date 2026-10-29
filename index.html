@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Le Refuge des Thés</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6b8e63">
+  <style>
+    :root {
+      --bg-cream: #fdf8f2;
+      --bg-card: #ffffff;
+      --wood-light: #f3e5d8;
+      --wood-border: #d8c2ac;
+      --green-main: #6b8e63;
+      --green-dark: #4c6946;
+      --green-soft: #e6f0e4;
+      --accent-coral: #e07a5f;
+      --accent-gold: #f2cc8f;
+      --text-main: #4a3f35;
+      --text-muted: #8c7b6b;
+    }
+
+    * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-cream);
+      color: var(--text-main);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* HEADER & RESSOURCES */
+    header {
+      background: var(--wood-light);
+      border-bottom: 3px solid var(--wood-border);
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+    .resources { display: flex; gap: 10px; }
+    .pill {
+      background: var(--bg-card);
+      border: 2px solid var(--wood-border);
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 0 var(--wood-border);
+    }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .version-tag { font-size: 0.75rem; color: var(--text-muted); font-weight: 700; }
+    .icon-btn {
+      background: var(--bg-card);
+      border: 2px solid var(--wood-border);
+      border-radius: 50%;
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; cursor: pointer;
+      box-shadow: 0 2px 0 var(--wood-border);
+    }
+    .icon-btn:active { transform: translateY(2px); box-shadow: none; }
+
+    /* CONTENEUR D'ONGLETS */
+    main {
+      flex: 1;
+      position: relative;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .tab-view { display: none; width: 100%; max-width: 420px; flex-direction: column; gap: 14px; animation: fadeIn 0.25s ease; }
+    .tab-view.active { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ONGLET 1 : SALON DE THÉ */
+    .client-stage {
+      background: linear-gradient(180deg, #e6f0e4 0%, #fdf8f2 100%);
+      border: 3px solid var(--wood-border);
+      border-radius: 24px;
+      padding: 18px;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 6px 0 var(--wood-border);
+    }
+    .friendship-badge {
+      position: absolute; top: 12px; right: 12px;
+      background: var(--bg-card);
+      border: 2px solid var(--wood-border);
+      border-radius: 12px;
+      padding: 4px 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .animal-sprite {
+      font-size: 4.4rem;
+      line-height: 1;
+      margin: 8px 0;
+      display: inline-block;
+      animation: floatIdle 3s ease-in-out infinite;
+    }
+    @keyframes floatIdle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    .animal-name { font-size: 1.15rem; font-weight: 800; color: var(--green-dark); }
+    
+    .speech-bubble {
+      background: var(--bg-card);
+      border: 2px solid var(--wood-border);
+      border-radius: 16px;
+      padding: 10px 14px;
+      margin-top: 10px;
+      font-size: 0.9rem;
+      line-height: 1.35;
+      position: relative;
+    }
+    .recipe-req {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .req-tag {
+      background: var(--wood-light);
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-weight: 700;
+      font-size: 0.82rem;
+    }
+
+    /* ZONE DE PRÉPARATION DE LA TASSE */
+    .counter-box {
+      background: var(--bg-card);
+      border: 3px solid var(--wood-border);
+      border-radius: 24px;
+      padding: 16px;
+      text-align: center;
+      box-shadow: 0 6px 0 var(--wood-border);
+    }
+    .cup-area {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      margin-bottom: 14px;
+    }
+    .cup-visual {
+      width: 90px; height: 80px;
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cup-slots {
+      display: flex; gap: 8px; align-items: center;
+    }
+    .slot-circle {
+      width: 46px; height: 46px;
+      border-radius: 14px;
+      border: 2px dashed var(--wood-border);
+      background: var(--bg-cream);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+    }
+    .pantry-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .ing-btn {
+      background: var(--green-soft);
+      border: 2px solid var(--green-main);
+      border-radius: 14px;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      color: var(--green-dark);
+      cursor: pointer;
+      box-shadow: 0 3px 0 var(--green-main);
+    }
+    .ing-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--green-main); }
+    .ing-btn.empty { opacity: 0.5; filter: grayscale(0.6); }
+    .ing-stock {
+      background: var(--bg-card);
+      padding: 2px 7px;
+      border-radius: 99px;
+      font-size: 0.78rem;
+    }
+
+    .action-row { display: flex; gap: 8px; }
+    .btn-main {
+      flex: 1;
+      background: var(--accent-coral);
+      color: white;
+      border: none;
+      border-radius: 14px;
+      padding: 12px;
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #b5573e;
+    }
+    .btn-main:active { transform: translateY(3px); box-shadow: 0 1px 0 #b5573e; }
+    .btn-clear {
+      background: var(--wood-light);
+      color: var(--text-main);
+      border: 2px solid var(--wood-border);
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* ONGLET 2 : POTAGER HAY DAY */
+    .garden-header {
+      background: var(--bg-card);
+      border: 3px solid var(--wood-border);
+      border-radius: 20px;
+      padding: 12px 16px;
+      text-align: center;
+    }
+    .seed-selector {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 6px 0;
+    }
+    .seed-tab {
+      flex: 1;
+      min-width: 75px;
+      background: var(--bg-cream);
+      border: 2px solid var(--wood-border);
+      border-radius: 14px;
+      padding: 8px 6px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    .seed-tab.selected {
+      background: var(--green-soft);
+      border-color: var(--green-main);
+      color: var(--green-dark);
+      box-shadow: 0 3px 0 var(--green-main);
+    }
+    .plots-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .plot-card {
+      background: #9c7a5b;
+      border: 4px solid #75583f;
+      border-radius: 20px;
+      height: 115px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      cursor: pointer;
+      position: relative;
+      box-shadow: inset 0 4px 8px rgba(0,0,0,0.2), 0 4px 0 #75583f;
+      transition: transform 0.1s;
+    }
+    .plot-card:active { transform: scale(0.97); }
+    .plot-card.ready {
+      background: #849c5b;
+      border-color: #5d753f;
+      animation: pulsePlot 1.5s infinite;
+    }
+    @keyframes pulsePlot { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+    .plot-icon { font-size: 2.4rem; }
+    .plot-label { font-size: 0.8rem; font-weight: 700; margin-top: 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+    .progress-bar {
+      width: 75%; height: 8px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 99px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+    .progress-fill { height: 100%; background: var(--accent-gold); width: 0%; transition: width 0.25s linear; }
+
+    /* ONGLET 3 : CARNET & LETTRES SECRÈTES */
+    .gift-banner {
+      background: linear-gradient(135deg, #f2cc8f 0%, #e07a5f 100%);
+      color: white;
+      border-radius: 20px;
+      padding: 16px;
+      text-align: center;
+      box-shadow: 0 5px 0 #c45f44;
+    }
+    .gift-banner button {
+      margin-top: 10px;
+      background: white;
+      color: #c45f44;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 99px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .album-grid { display: flex; flex-direction: column; gap: 10px; }
+    .album-card {
+      background: var(--bg-card);
+      border: 3px solid var(--wood-border);
+      border-radius: 18px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 0 var(--wood-border);
+    }
+    .album-avatar { font-size: 2.5rem; background: var(--wood-light); width: 58px; height: 58px; border-radius: 16px; display: flex; align-items: center; justify-content: center; }
+    .album-info { flex: 1; }
+    .album-title { font-weight: 800; font-size: 1rem; }
+    .album-desc { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+    .btn-note {
+      background: var(--green-main);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .btn-note:disabled { background: var(--wood-border); color: var(--text-muted); cursor: not-allowed; }
+
+    /* NAVIGATION BASSE */
+    nav {
+      background: var(--wood-light);
+      border-top: 3px solid var(--wood-border);
+      display: flex;
+      padding: 8px 12px 14px;
+      gap: 10px;
+    }
+    .nav-btn {
+      flex: 1;
+      background: var(--bg-card);
+      border: 2px solid var(--wood-border);
+      border-radius: 16px;
+      padding: 8px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      font-weight: 800;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      position: relative;
+      box-shadow: 0 3px 0 var(--wood-border);
+    }
+    .nav-btn.active {
+      background: var(--green-soft);
+      border-color: var(--green-main);
+      color: var(--green-dark);
+      box-shadow: 0 3px 0 var(--green-main);
+    }
+    .badge-dot {
+      position: absolute; top: 4px; right: 14px;
+      width: 10px; height: 10px;
+      background: var(--accent-coral);
+      border-radius: 50%;
+      display: none;
+    }
+
+    /* MODALES (MOTS DOUX & MISE À JOUR HAY DAY) */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(45, 36, 30, 0.65);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+    .modal-box {
+      background: var(--bg-cream);
+      border: 4px solid var(--wood-border);
+      border-radius: 26px;
+      padding: 24px;
+      max-width: 350px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+      animation: popIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+    @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-icon { font-size: 3.4rem; margin-bottom: 8px; }
+    .modal-title { font-size: 1.25rem; font-weight: 800; color: var(--green-dark); margin-bottom: 10px; }
+    .modal-text {
+      background: var(--bg-card);
+      border: 2px solid var(--wood-border);
+      border-radius: 16px;
+      padding: 14px;
+      font-size: 0.95rem;
+      line-height: 1.45;
+      margin-bottom: 16px;
+      color: var(--text-main);
+    }
+
+    /* PARTICULES FLOTTANTES & TOAST */
+    .floating-particle {
+      position: fixed;
+      pointer-events: none;
+      font-weight: 800;
+      font-size: 1.2rem;
+      z-index: 2000;
+      animation: floatUp 1s ease-out forwards;
+    }
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0) scale(0.9); }
+      100% { opacity: 0; transform: translateY(-55px) scale(1.15); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- EN-TÊTE -->
+  <header>
+    <div class="resources">
+      <div class="pill">🪙 <span id="ui-coins">0</span></div>
+      <div class="pill">💖 <span id="ui-hearts">0</span></div>
+    </div>
+    <div class="header-actions">
+      <span class="version-tag" id="ui-version">v1.0.0</span>
+      <button class="icon-btn" id="btn-sound" onclick="toggleSound()">🔊</button>
+    </div>
+  </header>
+
+  <!-- CONTENU PRINCIPAL -->
+  <main>
+    <!-- VUE 1 : LE SALON DE THÉ -->
+    <section id="tab-salon" class="tab-view active">
+      <div class="client-stage">
+        <div class="friendship-badge" id="client-friendship">Amitié : 0/3 ⭐</div>
+        <div class="animal-sprite" id="client-sprite">🐰</div>
+        <div class="animal-name" id="client-name">Pompon le Lapin</div>
+        <div class="speech-bubble">
+          <div id="client-dialogue">« Coucou ! J'aimerais une infusion douce pour me réchauffer les pattes. »</div>
+          <div class="recipe-req" id="client-recipe"></div>
+        </div>
+      </div>
+
+      <div class="counter-box">
+        <div class="cup-area">
+          <div class="cup-visual">
+            <!-- Tasse SVG dynamique -->
+            <svg width="85" height="75" viewBox="0 0 100 90">
+              <path d="M35 18 Q40 8 35 2 M55 18 Q60 8 55 2" stroke="#b0c4b1" stroke-width="3" fill="none" stroke-linecap="round"/>
+              <path d="M72 35 H84 A12 12 0 0 1 84 60 H72" fill="none" stroke="#d98a6c" stroke-width="7"/>
+              <path d="M18 28 H76 V55 A28 28 0 0 1 20 55 Z" fill="#fdf8f2" stroke="#d98a6c" stroke-width="6"/>
+              <path id="cup-liquid" d="M22 40 H72 V54 A24 24 0 0 1 22 54 Z" fill="#e6ccb2" opacity="0.25"/>
+              <line x1="10" y1="82" x2="84" y2="82" stroke="#8c6d53" stroke-width="6" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:6px;">Dans la tasse (2 ingr.) :</div>
+            <div class="cup-slots">
+              <div class="slot-circle" id="slot-0"></div>
+              <span style="font-weight:800; color:var(--wood-border);">+</span>
+              <div class="slot-circle" id="slot-1"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pantry-grid" id="pantry-list"></div>
+
+        <div class="action-row">
+          <button class="btn-clear" onclick="clearCup()">Vider</button>
+          <button class="btn-main" onclick="serveTea()">Servir l'infusion ✨</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VUE 2 : LE POTAGER (FAÇON HAY DAY) -->
+    <section id="tab-garden" class="tab-view">
+      <div class="garden-header">
+        <div style="font-weight:800; font-size:0.95rem; margin-bottom:6px;">🌱 Sélectionne une graine à planter :</div>
+        <div class="seed-selector" id="seed-selector"></div>
+      </div>
+
+      <div class="plots-grid" id="plots-grid"></div>
+    </section>
+
+    <!-- VUE 3 : CARNET DES HABITUÉS & MOTS DOUX -->
+    <section id="tab-album" class="tab-view">
+      <div class="gift-banner">
+        <div style="font-weight:800; font-size:1.05rem;">🎁 Le Colis Surprise du Refuge</div>
+        <div style="font-size:0.85rem; opacity:0.95; margin-top:4px;" id="grand-gift-status">Collecte 50 💖 pour ouvrir la grande enveloppe !</div>
+        <button id="btn-grand-gift" onclick="openGrandGift()" style="display:none;">Ouvrir ma surprise 💌</button>
+      </div>
+
+      <div class="album-grid" id="album-list"></div>
+    </section>
+  </main>
+
+  <!-- BARRE DE NAVIGATION -->
+  <nav>
+    <button class="nav-btn active" onclick="switchTab('salon', this)">
+      <span style="font-size:1.3rem;">🍵</span>
+      <span>Comptoir</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('garden', this)">
+      <span class="badge-dot" id="garden-dot"></span>
+      <span style="font-size:1.3rem;">🌻</span>
+      <span>Potager</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('album', this)">
+      <span class="badge-dot" id="album-dot"></span>
+      <span style="font-size:1.3rem;">📖</span>
+      <span>Carnet</span>
+    </button>
+  </nav>
+
+  <!-- MODALE UNIVERSELLE (MOT DOUX & SURPRISE) -->
+  <div class="modal-overlay" id="modal-note">
+    <div class="modal-box">
+      <div class="modal-icon" id="modal-icon">💌</div>
+      <div class="modal-title" id="modal-title">Secret débloqué</div>
+      <div class="modal-text" id="modal-body">Message ici</div>
+      <button class="btn-main" style="width:100%;" onclick="closeModal()">Fermer avec le sourire ❤️</button>
+    </div>
+  </div>
+
+  <!-- MODALE DE MISE À JOUR FAÇON HAY DAY -->
+  <div class="modal-overlay" id="modal-update">
+    <div class="modal-box">
+      <div class="modal-icon">📦</div>
+      <div class="modal-title">Nouvelle livraison au Refuge !</div>
+      <div class="modal-text">
+        Le facteur vient d'apporter une mise à jour avec de nouvelles surprises. Ta progression est intégralement conservée !
+      </div>
+      <button class="btn-main" style="width:100%;" id="btn-apply-update">Installer la mise à jour ✨</button>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================================
+       1. ZONE DE PERSONNALISATION (Modifie ici pour tes futures mises à jour !)
+       ========================================================================= */
+    const GAME_CONFIG = {
+      version: "v1.0.0",
+      grandGoalHearts: 50,
+      grandGiftTitle: "Pour ma personne préférée ❤️",
+      grandGiftMessage: "Bravo d'avoir pris soin de tous les petits animaux du refuge ! Ce bon te donne droit à une soirée massage + ton repas préféré préparé par mes soins quand tu le souhaites. Je t'aime fort !",
+      
+      ingredients: {
+        camomille: { id: "camomille", name: "Camomille", icon: "🌼", growTime: 5, color: "#f3d57c" },
+        menthe:    { id: "menthe",    name: "Menthe",    icon: "🍃", growTime: 6, color: "#88c999" },
+        baies:     { id: "baies",     name: "Baies",     icon: "🫐", growTime: 8, color: "#9c89b8" },
+        miel:      { id: "miel",      name: "Miel",      icon: "🍯", growTime: 10, color: "#f4a261" }
+      },
+
+      animals: [
+        {
+          id: "lapin",
+          name: "Pompon le Lapin",
+          icon: "🐰",
+          maxDrinks: 2,
+          dialogue: "« Coucou ! J'aimerais une infusion Camomille et Miel pour me réchauffer les oreilles ! »",
+          recipe: ["camomille", "miel"],
+          secretNote: "Petit mot de Pompon : Tout comme ce thé au miel, chaque journée passée avec toi à l'appartement est mille fois plus douce. 🐰❤️"
+        },
+        {
+          id: "renard",
+          name: "Roux le Renardeau",
+          icon: "🦊",
+          maxDrinks: 2,
+          dialogue: "« Salut ! Un thé fruité aux Baies et à la Menthe fraîche me ferait trop plaisir ! »",
+          recipe: ["baies", "menthe"],
+          secretNote: "Secret de Roux : J'adore nos petits moments rien qu'à nous deux. Tu es la meilleure coéquipière du monde au quotidien ! 🦊✨"
+        },
+        {
+          id: "herisson",
+          name: "Piquot le Hérisson",
+          icon: "🦔",
+          maxDrinks: 2,
+          dialogue: "« Brrr... Une double dose de Baies et de Miel pour faire le plein d'énergie s'il te plaît ! »",
+          recipe: ["baies", "miel"],
+          secretNote: "Message de Piquot : Même quand tu rentres fatiguée de ta journée, ton sourire illumine toute la pièce. Prends soin de toi ! 🦔🌸"
+        },
+        {
+          id: "chat",
+          name: "Mochi le Chaton",
+          icon: "🐱",
+          maxDrinks: 2,
+          dialogue: "« Miaou ~ Une infusion apaisante Camomille et Menthe avant ma sieste au soleil ? »",
+          recipe: ["camomille", "menthe"],
+          secretNote: "Confidence de Mochi : Ronronner à tes côtés est mon activité favorite. Merci d'être toi, tout simplement. 🐱💖"
+        }
+      ]
+    };
+
+    /* =========================================================================
+       2. SYNTHÉTISEUR AUDIO NATIF (Zéro fichier MP3 externe)
+       ========================================================================= */
+    let soundEnabled = true;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function playTone(freq, type = 'sine', duration = 0.12, delay = 0) {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new AudioCtx();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + delay);
+        osc.stop(audioCtx.currentTime + delay + duration);
+      } catch (e) {}
+    }
+
+    function sfxClick() { playTone(520, 'sine', 0.08); }
+    function sfxHarvest() { playTone(587, 'triangle', 0.1, 0); playTone(880, 'triangle', 0.15, 0.07); }
+    function sfxServeSuccess() {
+      playTone(523.25, 'sine', 0.12, 0);
+      playTone(659.25, 'sine', 0.12, 0.1);
+      playTone(783.99, 'sine', 0.18, 0.2);
+      playTone(1046.5, 'sine', 0.25, 0.3);
+    }
+    function sfxError() { playTone(220, 'sawtooth', 0.15, 0); playTone(180, 'sawtooth', 0.2, 0.12); }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('btn-sound').innerText = soundEnabled ? '🔊' : '🔇';
+      if (soundEnabled) sfxClick();
+    }
+
+    /* =========================================================================
+       3. GESTION DE LA SAUVEGARDE PERSISTANTE (Compatible futures MàJ)
+       ========================================================================= */
+    const STORAGE_KEY = 'refuge_save_v1';
+    
+    function loadSave() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const defaultSave = {
+        coins: 20,
+        hearts: 0,
+        inventory: { camomille: 2, menthe: 1, baies: 1, miel: 2 },
+        friendship: {},
+        currentAnimalIndex: 0
+      };
+      let data = raw ? JSON.parse(raw) : defaultSave;
+      
+      // Fusion intelligente : si une mise à jour ajoute un ingrédient ou un animal, on l'initialise sans rien perdre
+      Object.keys(GAME_CONFIG.ingredients).forEach(k => {
+        if (typeof data.inventory[k] !== 'number') data.inventory[k] = 1;
+      });
+      GAME_CONFIG.animals.forEach(a => {
+        if (typeof data.friendship[a.id] !== 'number') data.friendship[a.id] = 0;
+      });
+      if (data.currentAnimalIndex >= GAME_CONFIG.animals.length) data.currentAnimalIndex = 0;
+      return data;
+    }
+
+    let state = loadSave();
+    function saveGame() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      updateHeaderUI();
+    }
+
+    /* =========================================================================
+       4. LOGIQUE DU SALON DE THÉ & POTAGER
+       ========================================================================= */
+    let currentCup = [];
+    let selectedSeed = 'camomille';
+    let plots = [
+      { id: 0, state: 'empty', crop: null, plantedAt: 0, duration: 0 },
+      { id: 1, state: 'empty', crop: null, plantedAt: 0, duration: 0 },
+      { id: 2, state: 'empty', crop: null, plantedAt: 0, duration: 0 },
+      { id: 3, state: 'empty', crop: null, plantedAt: 0, duration: 0 }
+    ];
+
+    function spawnParticle(text, x, y, color = '#e07a5f') {
+      const el = document.createElement('div');
+      el.className = 'floating-particle';
+      el.innerText = text;
+      el.style.left = (x || window.innerWidth / 2 - 20) + 'px';
+      el.style.top = (y || window.innerHeight / 2) + 'px';
+      el.style.color = color;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1000);
+    }
+
+    function updateHeaderUI() {
+      document.getElementById('ui-coins').innerText = state.coins;
+      document.getElementById('ui-hearts').innerText = state.hearts;
+      document.getElementById('ui-version').innerText = GAME_CONFIG.version;
+
+      // Statut du grand cadeau
+      const giftStatus = document.getElementById('grand-gift-status');
+      const giftBtn = document.getElementById('btn-grand-gift');
+      if (state.hearts >= GAME_CONFIG.grandGoalHearts) {
+        giftStatus.innerText = "✨ Objectif atteint ! Ton enveloppe surprise est prête :";
+        giftBtn.style.display = 'inline-block';
+      } else {
+        giftStatus.innerText = `Progression : ${state.hearts} / ${GAME_CONFIG.grandGoalHearts} 💖 pour ouvrir ta grande surprise !`;
+        giftBtn.style.display = 'none';
+      }
+    }
+
+    function renderClient() {
+      const animal = GAME_CONFIG.animals[state.currentAnimalIndex];
+      const friendPoints = state.friendship[animal.id] || 0;
+      document.getElementById('client-sprite').innerText = animal.icon;
+      document.getElementById('client-name').innerText = animal.name;
+      document.getElementById('client-dialogue').innerText = animal.dialogue;
+      document.getElementById('client-friendship').innerText = `Amitié : ${Math.min(friendPoints, animal.maxDrinks)}/${animal.maxDrinks} ⭐`;
+
+      const reqContainer = document.getElementById('client-recipe');
+      reqContainer.innerHTML = animal.recipe.map(ingId => {
+        const ing = GAME_CONFIG.ingredients[ingId];
+        return `<span class="req-tag">${ing.icon} ${ing.name}</span>`;
+      }).join(' + ');
+    }
+
+    function renderPantry() {
+      const list = document.getElementById('pantry-list');
+      list.innerHTML = Object.values(GAME_CONFIG.ingredients).map(ing => {
+        const count = state.inventory[ing.id] || 0;
+        return `
+          <button class="ing-btn ${count === 0 ? 'empty' : ''}" onclick="addIngredientToCup('${ing.id}', event)">
+            <span>${ing.icon} ${ing.name}</span>
+            <span class="ing-stock">x${count}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderCup() {
+      for (let i = 0; i < 2; i++) {
+        const slot = document.getElementById(`slot-${i}`);
+        const ingId = currentCup[i];
+        slot.innerText = ingId ? GAME_CONFIG.ingredients[ingId].icon : '';
+      }
+      const liquid = document.getElementById('cup-liquid');
+      if (currentCup.length === 0) {
+        liquid.setAttribute('opacity', '0.2');
+        liquid.setAttribute('fill', '#e6ccb2');
+      } else {
+        const lastColor = GAME_CONFIG.ingredients[currentCup[currentCup.length - 1]].color;
+        liquid.setAttribute('opacity', '0.85');
+        liquid.setAttribute('fill', lastColor);
+      }
+    }
+
+    function addIngredientToCup(ingId, ev) {
+      if (currentCup.length >= 2) {
+        sfxError();
+        spawnParticle("Tasse pleine !", ev.clientX - 40, ev.clientY - 20);
+        return;
+      }
+      if ((state.inventory[ingId] || 0) <= 0) {
+        sfxError();
+        spawnParticle("Va en cultiver au potager 🌱", ev.clientX - 70, ev.clientY - 20);
+        return;
+      }
+      sfxClick();
+      state.inventory[ingId]--;
+      currentCup.push(ingId);
+      saveGame();
+      renderPantry();
+      renderCup();
+    }
+
+    function clearCup() {
+      if (currentCup.length === 0) return;
+      sfxClick();
+      currentCup.forEach(ingId => state.inventory[ingId]++);
+      currentCup = [];
+      saveGame();
+      renderPantry();
+      renderCup();
+    }
+
+    function serveTea() {
+      if (currentCup.length < 2) {
+        sfxError();
+        spawnParticle("Ajoute 2 ingrédients !", window.innerWidth / 2 - 60, window.innerHeight / 2);
+        return;
+      }
+
+      const animal = GAME_CONFIG.animals[state.currentAnimalIndex];
+      const sortedCup = [...currentCup].sort().join(',');
+      const sortedRecipe = [...animal.recipe].sort().join(',');
+
+      if (sortedCup === sortedRecipe) {
+        sfxServeSuccess();
+        currentCup = [];
+        state.coins += 15;
+        state.hearts += 10;
+        const prevFriend = state.friendship[animal.id] || 0;
+        state.friendship[animal.id] = prevFriend + 1;
+
+        spawnParticle("+10 💖  +15 🪙", window.innerWidth / 2 - 50, window.innerHeight / 3, '#e07a5f');
+
+        // Si le niveau max d'amitié vient d'être atteint, on signale le carnet !
+        if (prevFriend < animal.maxDrinks && state.friendship[animal.id] >= animal.maxDrinks) {
+          document.getElementById('album-dot').style.display = 'block';
+          setTimeout(() => {
+            openModal(animal.icon, `Nouveau souvenir de ${animal.name} !`, animal.secretNote);
+          }, 500);
+        }
+
+        // Passage au client suivant
+        state.currentAnimalIndex = (state.currentAnimalIndex + 1) % GAME_CONFIG.animals.length;
+        saveGame();
+        renderClient();
+        renderCup();
+        renderAlbum();
+      } else {
+        sfxError();
+        spawnParticle("Oups, mauvaise recette !", window.innerWidth / 2 - 70, window.innerHeight / 2);
+        clearCup();
+      }
+    }
+
+    /* =========================================================================
+       5. SYSTÈME DE POTAGER TEMPS RÉEL (FAÇON HAY DAY)
+       ========================================================================= */
+    function renderSeedSelector() {
+      const container = document.getElementById('seed-selector');
+      container.innerHTML = Object.values(GAME_CONFIG.ingredients).map(ing => `
+        <div class="seed-tab ${selectedSeed === ing.id ? 'selected' : ''}" onclick="selectSeed('${ing.id}')">
+          <div style="font-size:1.4rem;">${ing.icon}</div>
+          <div>${ing.name}</div>
+          <div style="font-size:0.7rem; color:var(--text-muted);">${ing.growTime}s</div>
+        </div>
+      `).join('');
+    }
+
+    function selectSeed(id) {
+      sfxClick();
+      selectedSeed = id;
+      renderSeedSelector();
+    }
+
+    function renderPlots() {
+      const grid = document.getElementById('plots-grid');
+      const now = Date.now();
+      let anyReady = false;
+
+      grid.innerHTML = plots.map(p => {
+        if (p.state === 'empty') {
+          return `
+            <div class="plot-card" onclick="interactPlot(${p.id}, event)">
+              <div class="plot-icon">🕳️</div>
+              <div class="plot-label">Toucher pour planter</div>
+            </div>
+          `;
+        }
+        const ing = GAME_CONFIG.ingredients[p.crop];
+        const elapsed = (now - p.plantedAt) / 1000;
+        const pct = Math.min(100, (elapsed / p.duration) * 100);
+
+        if (pct >= 100) {
+          p.state = 'ready';
+          anyReady = true;
+          return `
+            <div class="plot-card ready" onclick="interactPlot(${p.id}, event)">
+              <div class="plot-icon">${ing.icon}</div>
+              <div class="plot-label">Prêt ! Récolter ✨</div>
+            </div>
+          `;
+        } else {
+          const remaining = Math.ceil(p.duration - elapsed);
+          return `
+            <div class="plot-card" onclick="interactPlot(${p.id}, event)">
+              <div class="plot-icon">🌱</div>
+              <div class="plot-label">${ing.name} (${remaining}s)</div>
+              <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+            </div>
+          `;
+        }
+      }).join('');
+
+      document.getElementById('garden-dot').style.display = anyReady ? 'block' : 'none';
+    }
+
+    function interactPlot(plotId, ev) {
+      const p = plots[plotId];
+      if (p.state === 'empty') {
+        sfxClick();
+        const ing = GAME_CONFIG.ingredients[selectedSeed];
+        p.state = 'growing';
+        p.crop = selectedSeed;
+        p.plantedAt = Date.now();
+        p.duration = ing.growTime;
+        renderPlots();
+      } else if (p.state === 'ready') {
+        sfxHarvest();
+        const ing = GAME_CONFIG.ingredients[p.crop];
+        state.inventory[p.crop] = (state.inventory[p.crop] || 0) + 2;
+        spawnParticle(`+2 ${ing.icon}`, ev.clientX - 20, ev.clientY - 20, '#4c6946');
+        p.state = 'empty';
+        p.crop = null;
+        saveGame();
+        renderPantry();
+        renderPlots();
+      }
+    }
+
+    setInterval(() => {
+      if (plots.some(p => p.state === 'growing')) {
+        renderPlots();
+      }
+    }, 300);
+
+    /* =========================================================================
+       6. CARNET DES HABITUÉS & MODALES
+       ========================================================================= */
+    function renderAlbum() {
+      const list = document.getElementById('album-list');
+      list.innerHTML = GAME_CONFIG.animals.map(a => {
+        const count = state.friendship[a.id] || 0;
+        const unlocked = count >= a.maxDrinks;
+        return `
+          <div class="album-card">
+            <div class="album-avatar">${a.icon}</div>
+            <div class="album-info">
+              <div class="album-title">${a.name}</div>
+              <div class="album-desc">Amitié : ${Math.min(count, a.maxDrinks)} / ${a.maxDrinks} thés servis</div>
+            </div>
+            <button class="btn-note" ${unlocked ? '' : 'disabled'} onclick="readAnimalNote('${a.id}')">
+              ${unlocked ? 'Lire le mot 💌' : '🔒 Secret'}
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function readAnimalNote(animalId) {
+      sfxClick();
+      const animal = GAME_CONFIG.animals.find(a => a.id === animalId);
+      if (animal) openModal(animal.icon, `Mot doux de ${animal.name}`, animal.secretNote);
+    }
+
+    function openGrandGift() {
+      sfxServeSuccess();
+      openModal('🎁', GAME_CONFIG.grandGiftTitle, GAME_CONFIG.grandGiftMessage);
+    }
+
+    function openModal(icon, title, body) {
+      document.getElementById('modal-icon').innerText = icon;
+      document.getElementById('modal-title').innerText = title;
+      document.getElementById('modal-body').innerText = body;
+      document.getElementById('modal-note').style.display = 'flex';
+    }
+
+    function closeModal() {
+      sfxClick();
+      document.getElementById('modal-note').style.display = 'none';
+    }
+
+    function switchTab(tabName, btnEl) {
+      sfxClick();
+      document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+      btnEl.classList.add('active');
+      if (tabName === 'album') document.getElementById('album-dot').style.display = 'none';
+    }
+
+    /* =========================================================================
+       7. DÉTECTION DE MISE À JOUR SERVICE WORKER (STYLE HAY DAY)
+       ========================================================================= */
+    let newWorker = null;
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        reg.update(); // Force la vérification au démarrage de l'application
+        reg.addEventListener('updatefound', () => {
+          newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              document.getElementById('modal-update').style.display = 'flex';
+            }
+          });
+        });
+      });
+
+      document.getElementById('btn-apply-update').addEventListener('click', () => {
+        if (newWorker) newWorker.postMessage({ action: 'skipWaiting' });
+      });
+
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+    }
+
+    // Initialisation au lancement
+    updateHeaderUI();
+    renderClient();
+    renderPantry();
+    renderCup();
+    renderSeedSelector();
+    renderPlots();
+    renderAlbum();
+  </script>
+</body>
+</html>
