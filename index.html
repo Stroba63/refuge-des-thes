@@ -338,7 +338,7 @@
     <div class="dock-panel">
       <div class="dock-header">
         <span>🌱 Toucher un carré de terre 3D pour planter/récolter :</span>
-        <span id="ui-version">v2.2.0</span>
+        <span id="ui-version">v2.2.1</span>
       </div>
       <div class="seeds-row" id="seeds-row"></div>
 
@@ -396,7 +396,7 @@
        1. CONFIGURATION ET TEXTES DU JEU
        ========================================================================= */
     const GAME_CONFIG = {
-      version: "v2.2.0",
+      version: "v2.2.1",
       grandGoalHearts: 50,
       grandGiftTitle: "Diplôme de Maître Herboriste 🏆",
       grandGiftMessage: "Félicitations ! Grâce à ton savoir-faire et tes récoltes, le Refuge des Thés est devenu l'adresse la plus réputée de la vallée. Tous les habitants de la forêt viennent goûter tes infusions artisanales !",
@@ -453,7 +453,7 @@
     };
 
     /* =========================================================================
-       2. SYNTHÉTISEUR AUDIO NATIF & MUSIQUE DE FOND PASTORALE
+       2. SYNTHÉTISEUR AUDIO NATIF & MUSIQUE AMBIANTE GÉNÉRATIVE LONGUE DURÉE
        ========================================================================= */
     let soundEnabled = true;
     let musicEnabled = true;
@@ -462,24 +462,37 @@
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     let audioCtx = null;
 
-    // Mélodie acoustique douce façon Hay Day / Animal Crossing (Pentatonique Do Majeur / Sol)
-    const BG_MELODY = [
-      { note: 523.25, bass: 130.81 }, // C5 + C3
-      { note: 659.25, bass: null },   // E5
-      { note: 783.99, bass: 196.00 }, // G5 + G3
-      { note: 659.25, bass: null },   // E5
-      { note: 880.00, bass: 220.00 }, // A5 + A3
-      { note: 783.99, bass: null },   // G5
-      { note: 659.25, bass: 164.81 }, // E5 + E3
-      { note: 587.33, bass: null },   // D5
-      { note: 523.25, bass: 174.61 }, // C5 + F3
-      { note: 587.33, bass: null },   // D5
-      { note: 659.25, bass: 130.81 }, // E5 + C3
-      { note: 783.99, bass: null },   // G5
-      { note: 659.25, bass: 196.00 }, // E5 + G3
-      { note: 587.33, bass: null },   // D5
-      { note: 523.25, bass: 130.81 }, // C5 + C3
-      { note: null,   bass: 196.00 }  // Respiration
+    // Suite harmonique sur 16 mesures (128 temps ~ 1min15 par cycle + variations mélodiques aléatoires douces)
+    // 4 mouvements : Matinée au jardin -> Brise sur le moulin -> Rivière calme -> Repos au salon de thé
+    const CHORD_PROGRESSION = [
+      // Mouvement I : Matinée au jardin (Do Maj7 -> Sol6 -> La min7 -> Fa Maj7)
+      { bass: 130.81, arp: [261.63, 329.63, 392.00, 493.88], scale: [523.25, 587.33, 659.25, 783.99, 987.77] },
+      { bass: 196.00, arp: [246.94, 293.66, 392.00, 493.88], scale: [587.33, 659.25, 783.99, 880.00, 987.77] },
+      { bass: 220.00, arp: [261.63, 329.63, 392.00, 440.00], scale: [523.25, 659.25, 783.99, 880.00, 1046.50] },
+      { bass: 174.61, arp: [261.63, 349.23, 440.00, 523.25], scale: [523.25, 587.33, 698.46, 880.00, 1046.50] },
+      // Mouvement II : Brise sur le moulin (Mi min7 -> La min7 -> Ré min7 -> Sol sus4)
+      { bass: 164.81, arp: [246.94, 329.63, 392.00, 493.88], scale: [493.88, 587.33, 659.25, 783.99, 987.77] },
+      { bass: 220.00, arp: [261.63, 329.63, 440.00, 523.25], scale: [523.25, 587.33, 659.25, 880.00] },
+      { bass: 146.83, arp: [261.63, 293.66, 349.23, 440.00], scale: [523.25, 587.33, 698.46, 880.00] },
+      { bass: 196.00, arp: [261.63, 293.66, 392.00, 493.88], scale: [587.33, 659.25, 783.99, 880.00] },
+      // Mouvement III : Rivière calme (Fa Maj7 -> Mi min7 -> Ré min7 -> Do Maj7)
+      { bass: 174.61, arp: [261.63, 349.23, 440.00, 523.25], scale: [659.25, 698.46, 880.00, 1046.50] },
+      { bass: 164.81, arp: [246.94, 329.63, 392.00, 493.88], scale: [587.33, 659.25, 783.99, 987.77] },
+      { bass: 146.83, arp: [220.00, 293.66, 349.23, 440.00], scale: [523.25, 587.33, 698.46, 783.99] },
+      { bass: 130.81, arp: [261.63, 329.63, 392.00, 493.88], scale: [523.25, 659.25, 783.99, 987.77] },
+      // Mouvement IV : Respiration & silence pastoral (La min9 -> Fa6 -> Sol6 -> Do Maj9)
+      { bass: 220.00, arp: [261.63, 329.63, 392.00, 493.88], scale: [659.25, 783.99, 987.77] },
+      { bass: 174.61, arp: [220.00, 261.63, 349.23, 440.00], scale: [523.25, 698.46, 880.00] },
+      { bass: 196.00, arp: [246.94, 293.66, 392.00, 440.00], scale: [587.33, 659.25, 783.99] },
+      { bass: 130.81, arp: [196.00, 261.63, 329.63, 392.00], scale: [523.25, 659.25, 783.99] }
+    ];
+
+    // Motifs d'arpèges variés sur 8 temps par mesure pour éviter toute monotonie
+    const ARP_PATTERNS = [
+      [0, 1, 2, 3, 2, 1, 2, null],
+      [0, 2, 1, 3, null, 2, 1, null],
+      [0, 1, 3, 2, 1, null, 2, 3],
+      [0, null, 1, 2, 3, null, 1, null]
     ];
 
     function ensureAudioCtx() {
@@ -487,7 +500,7 @@
       if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
-    function playPluck(freq, vol = 0.04, duration = 0.75) {
+    function playAcousticNote(freq, vol = 0.03, duration = 1.2, wave = 'triangle', cutoff = 950) {
       if (!musicEnabled || !freq) return;
       try {
         ensureAudioCtx();
@@ -496,22 +509,22 @@
         const filter = audioCtx.createBiquadFilter();
         const gain = audioCtx.createGain();
 
-        osc.type = 'triangle';
+        osc.type = wave;
         osc.frequency.setValueAtTime(freq, now);
 
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(1100, now);
+        filter.frequency.setValueAtTime(cutoff, now);
 
-        gain.gain.setValueAtTime(0.001, now);
-        gain.gain.linearRampToValueAtTime(vol, now + 0.035);
-        gain.gain.exponentialRampToValueAtTime(0.0008, now + duration);
+        gain.gain.setValueAtTime(0.0005, now);
+        gain.gain.linearRampToValueAtTime(vol, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.0006, now + duration);
 
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(audioCtx.destination);
 
         osc.start(now);
-        osc.stop(now + duration + 0.02);
+        osc.stop(now + duration + 0.04);
       } catch (e) {}
     }
 
@@ -519,11 +532,42 @@
       if (musicInterval) return;
       musicInterval = setInterval(() => {
         if (!musicEnabled) return;
-        const step = BG_MELODY[musicStep % BG_MELODY.length];
-        if (step.note) playPluck(step.note, 0.038, 0.7);
-        if (step.bass) playPluck(step.bass, 0.028, 1.1);
+
+        const beatInBar = musicStep % 8;
+        const barIndex = Math.floor(musicStep / 8) % CHORD_PROGRESSION.length;
+        const chord = CHORD_PROGRESSION[barIndex];
+        const pattern = ARP_PATTERNS[barIndex % ARP_PATTERNS.length];
+
+        // 1. Basse chaude en début de mesure (et parfois au 5e temps)
+        if (beatInBar === 0) {
+          playAcousticNote(chord.bass, 0.026, 2.4, 'sine', 500);
+          // Accord de nappe très doux en fond
+          playAcousticNote(chord.arp[0], 0.011, 2.6, 'sine', 600);
+          playAcousticNote(chord.arp[2], 0.010, 2.6, 'sine', 600);
+        } else if (beatInBar === 4 && barIndex % 3 !== 2) {
+          playAcousticNote(chord.bass * 1.5, 0.016, 1.4, 'sine', 520);
+        }
+
+        // 2. Arpège de guitare acoustique / harpe douce (avec pauses respiratoires en fin de cycle)
+        const isBreathingBar = (barIndex === 7 || barIndex === 15) && beatInBar >= 4;
+        if (!isBreathingBar) {
+          const arpIdx = pattern[beatInBar];
+          if (arpIdx !== null && chord.arp[arpIdx]) {
+            playAcousticNote(chord.arp[arpIdx], 0.022, 1.15, 'triangle', 920);
+          }
+        }
+
+        // 3. Mélodie pastorale générative (change subtilement à chaque passage)
+        if (beatInBar === 2 || (beatInBar === 5 && Math.random() < 0.65) || (beatInBar === 7 && Math.random() < 0.35)) {
+          if (barIndex !== 15) {
+            const noteIdx = (barIndex * 2 + beatInBar + Math.floor(Math.random() * 2)) % chord.scale.length;
+            const melodyFreq = chord.scale[noteIdx];
+            playAcousticNote(melodyFreq, 0.024, 1.35, 'sine', 1150);
+          }
+        }
+
         musicStep++;
-      }, 460);
+      }, 540);
     }
 
     function toggleMusic() {
