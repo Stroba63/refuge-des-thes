@@ -370,6 +370,7 @@
       </div>
     </div>
     <div class="hud-group">
+      <button class="icon-btn" onclick="recenterCamera()" title="Recentrer la caméra sur le chalet">🎯</button>
       <button class="icon-btn" onclick="openOrdersModal()" title="Tableau des Commandes de la Vallée">
         📋
         <span class="badge-dot" id="orders-dot"></span>
@@ -470,7 +471,7 @@
        1. CONFIGURATION ET TEXTES DU JEU
        ========================================================================= */
     const GAME_CONFIG = {
-      version: "v2.7.0",
+      version: "v2.7.1",
       grandGoalHearts: 80,
       grandGiftTitle: "Diplôme de Maître Herboriste 🏆",
       grandGiftMessage: "Félicitations ! Grâce à ton savoir-faire et tes récoltes, le Refuge des Thés est devenu l'adresse la plus réputée de la vallée. Tous les habitants de la forêt viennent goûter tes infusions artisanales !",
@@ -824,9 +825,9 @@
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x90dbf4);
 
-    // Caméra Orthographique Isométrique
+    // Caméra Orthographique Isométrique (Déplacement libre Gauche/Droite/Haut/Bas façon Hay Day !)
     let aspect = window.innerWidth / window.innerHeight;
-    const viewSize = 16.5;
+    const viewSize = 18.5;
     const camera = new THREE.OrthographicCamera(
       -viewSize * aspect / 2, viewSize * aspect / 2,
       viewSize / 2, -viewSize / 2,
@@ -834,17 +835,23 @@
     );
 
     let camAngle = Math.PI / 4; // 45 degrés isométrique
-    let camZoom = 1.05;
-    const camTarget = new THREE.Vector3(0, 0.5, 0);
+    let camZoom = 0.95;
+    const camTarget = new THREE.Vector3(0, 0.5, 0.5);
 
     function updateCameraPosition() {
-      const dist = 28;
+      const dist = 36;
       camera.position.x = camTarget.x + Math.sin(camAngle) * dist;
       camera.position.z = camTarget.z + Math.cos(camAngle) * dist;
-      camera.position.y = 22;
+      camera.position.y = 28;
       camera.zoom = camZoom;
       camera.lookAt(camTarget);
       camera.updateProjectionMatrix();
+    }
+    function recenterCamera() {
+      sfxClick();
+      camTarget.set(0, 0.5, 0.5);
+      camZoom = 0.95;
+      updateCameraPosition();
     }
     updateCameraPosition();
 
@@ -860,13 +867,13 @@
     scene.add(ambientLight);
 
     const sunLight = new THREE.DirectionalLight(0xfff1d0, 0.85);
-    sunLight.position.set(16, 28, 14);
+    sunLight.position.set(18, 32, 16);
     sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 1024;
-    sunLight.shadow.mapSize.height = 1024;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
     sunLight.shadow.camera.near = 5;
-    sunLight.shadow.camera.far = 65;
-    const d = 14;
+    sunLight.shadow.camera.far = 95;
+    const d = 28;
     sunLight.shadow.camera.left = -d;
     sunLight.shadow.camera.right = d;
     sunLight.shadow.camera.top = d;
@@ -887,118 +894,146 @@
     const matLanternGlow = new THREE.MeshBasicMaterial({ color: 0xffb703 });
 
     // Lumière chaude des lanternes (s'intensifie au crépuscule et la nuit)
-    const lanternLight = new THREE.PointLight(0xff9f1c, 0.25, 11);
-    lanternLight.position.set(-3.2, 2.2, 0.2);
+    const lanternLight = new THREE.PointLight(0xff9f1c, 0.25, 16);
+    lanternLight.position.set(-3.2, 2.5, 0.2);
     scene.add(lanternLight);
 
-    // 4.1 Île principale agrandie, Plage de sable, Collines, Rivière & Cascade animée
-    const waterMesh = new THREE.Mesh(new THREE.CylinderGeometry(30, 30, 0.6, 36), matWater);
+    // 4.1 Grande Île Domaine (3x plus vaste !), Plage de sable, Collines, Grand Lac & Cascade animée
+    const waterMesh = new THREE.Mesh(new THREE.CylinderGeometry(75, 75, 0.6, 42), matWater);
     waterMesh.position.y = -1.15;
     scene.add(waterMesh);
 
-    const islandBase = new THREE.Mesh(new THREE.CylinderGeometry(13.2, 11.4, 1.9, 18), matEarth);
+    const islandBase = new THREE.Mesh(new THREE.CylinderGeometry(26.2, 23.5, 2.1, 24), matEarth);
     islandBase.position.y = -0.95;
     scene.add(islandBase);
 
-    const sandShore = new THREE.Mesh(new THREE.CylinderGeometry(13.6, 13.2, 0.45, 18), matSand);
+    const sandShore = new THREE.Mesh(new THREE.CylinderGeometry(27.2, 26.2, 0.45, 24), matSand);
     sandShore.position.y = -0.22;
     sandShore.receiveShadow = true;
     scene.add(sandShore);
 
-    const islandTop = new THREE.Mesh(new THREE.CylinderGeometry(12.6, 12.9, 0.5, 18), matGrass);
+    const islandTop = new THREE.Mesh(new THREE.CylinderGeometry(25.2, 25.6, 0.5, 24), matGrass);
     islandTop.position.y = -0.14;
     islandTop.receiveShadow = true;
     scene.add(islandTop);
 
-    // Colline verdoyante en arrière-plan sous le moulin (reculée et ajustée pour ne jamais déborder sur le potager)
-    const hillSub = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.75, 0.65, 12), matGrassHill);
-    hillSub.position.set(2.5, 0.22, -6.2);
+    // Grande colline verdoyante au Nord-Est sous le moulin
+    const hillSub = new THREE.Mesh(new THREE.CylinderGeometry(3.8, 4.6, 0.75, 16), matGrassHill);
+    hillSub.position.set(6.8, 0.26, -10.5);
     hillSub.receiveShadow = true;
     scene.add(hillSub);
 
-    // Falaise rocheuse & Cascade au Nord-Ouest
+    // Grande Falaise rocheuse, Cascade & Grand Lac Cristallin au Nord-Ouest (100% dégagé devant !)
     const cliffGroup = new THREE.Group();
-    cliffGroup.position.set(-5.8, 0.1, -5.6);
-    const rock1 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.7), matStoneDark);
-    rock1.position.set(0, 0.9, 0);
-    rock1.scale.set(1.2, 1.35, 1);
+    cliffGroup.position.set(-10.5, 0.1, -11.2);
+    const rock1 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.4), matStoneDark);
+    rock1.position.set(0, 1.3, 0);
+    rock1.scale.set(1.3, 1.4, 1);
     rock1.castShadow = true;
     rock1.receiveShadow = true;
     cliffGroup.add(rock1);
 
-    const rock2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.2), matStone);
-    rock2.position.set(1.4, 0.65, 0.4);
+    const rock2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.75), matStone);
+    rock2.position.set(2.1, 0.95, 0.5);
     rock2.castShadow = true;
     cliffGroup.add(rock2);
 
+    const rock3 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.5), matStoneDark);
+    rock3.position.set(-2.0, 0.85, 0.7);
+    rock3.castShadow = true;
+    cliffGroup.add(rock3);
+
     const waterfallStream = new THREE.Mesh(
-      new THREE.BoxGeometry(0.85, 1.9, 0.35),
-      new THREE.MeshBasicMaterial({ color: 0x90e0ef, transparent: true, opacity: 0.85 })
+      new THREE.BoxGeometry(1.45, 2.8, 0.45),
+      new THREE.MeshBasicMaterial({ color: 0x90e0ef, transparent: true, opacity: 0.88 })
     );
-    waterfallStream.position.set(0.3, 0.85, 0.95);
-    waterfallStream.rotation.x = -0.25;
+    waterfallStream.position.set(0.4, 1.25, 1.25);
+    waterfallStream.rotation.x = -0.28;
     cliffGroup.add(waterfallStream);
 
-    const pondMesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(1.9, 1.9, 0.08, 14),
-      new THREE.MeshBasicMaterial({ color: 0x48cae4 })
+    // Grand Lac Turquoise (Rayon 3.8 : 4x plus grand et bien visible !)
+    const pondBorder = new THREE.Mesh(
+      new THREE.CylinderGeometry(4.1, 4.2, 0.08, 22),
+      matSand
     );
-    pondMesh.position.set(0.4, 0.03, 2.1);
+    pondBorder.position.set(0.5, 0.02, 4.0);
+    cliffGroup.add(pondBorder);
+
+    const pondMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(3.8, 3.8, 0.1, 22),
+      new THREE.MeshBasicMaterial({ color: 0x00b4d8 })
+    );
+    pondMesh.position.set(0.5, 0.05, 4.0);
     cliffGroup.add(pondMesh);
 
-    // Nénuphars sur le bassin
+    // Grands nénuphars et fleurs de lotus sur le lac
     const lilyMat = new THREE.MeshLambertMaterial({ color: 0x38b000 });
-    [[-0.2, 1.8], [0.9, 2.3], [0.3, 2.9]].forEach(([lx, lz]) => {
-      const lily = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.04, 9), lilyMat);
-      lily.position.set(lx, 0.08, lz);
+    const lotusMat = new THREE.MeshLambertMaterial({ color: 0xff8fab });
+    [[-1.8, 3.2], [2.4, 3.5], [-0.8, 6.2], [2.1, 5.8], [-2.2, 4.9]].forEach(([lx, lz], idx) => {
+      const lily = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.04, 10), lilyMat);
+      lily.position.set(lx, 0.11, lz);
       cliffGroup.add(lily);
+      if (idx % 2 === 0) {
+        const lotus = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), lotusMat);
+        lotus.scale.set(1, 0.65, 1);
+        lotus.position.set(lx, 0.17, lz);
+        cliffGroup.add(lotus);
+      }
     });
     scene.add(cliffGroup);
 
     // Écume animée au pied de la cascade
     const waterfallDrops = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
       const drop = new THREE.Mesh(
-        new THREE.SphereGeometry(0.16, 6, 6),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 })
+        new THREE.SphereGeometry(0.22, 6, 6),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 })
       );
-      drop.position.set(-5.8 + (Math.random() - 0.5) * 0.7, 0.2 + i * 0.28, -4.5);
+      drop.position.set(-10.1 + (Math.random() - 0.5) * 1.2, 0.22 + i * 0.28, -9.5);
       scene.add(drop);
       waterfallDrops.push(drop);
     }
 
-    // Ponton d'accueil en bois à l'Ouest (par où arrivent les animaux !)
+    // Grand Ponton d'accueil en bois à l'Ouest sur la plage (par où arrivent les animaux !)
     const dockGroup = new THREE.Group();
-    dockGroup.position.set(-9.2, 0.05, 0.9);
-    for (let p = 0; p < 7; p++) {
-      const plank = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.12, 1.75), matWood);
-      plank.position.set(p * 0.52, 0.08, 0);
+    dockGroup.position.set(-22.5, 0.05, 1.2);
+    for (let p = 0; p < 10; p++) {
+      const plank = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.14, 2.1), matWood);
+      plank.position.set(p * 0.56, 0.08, 0);
       plank.castShadow = true;
       plank.receiveShadow = true;
       dockGroup.add(plank);
     }
-    [[-0.1, -0.85], [-0.1, 0.85], [3.1, -0.85], [3.1, 0.85]].forEach(([px, pz]) => {
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.12, 1.4, 7), matWoodDark);
+    [[-0.1, -0.95], [-0.1, 0.95], [2.5, -0.95], [2.5, 0.95], [5.0, -0.95], [5.0, 0.95]].forEach(([px, pz]) => {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.13, 1.5, 7), matWoodDark);
       post.position.set(px, -0.2, pz);
       post.castShadow = true;
       dockGroup.add(post);
     });
     // Lanterne du ponton
-    const dockPole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.5, 6), matWoodDark);
-    dockPole.position.set(0.1, 0.8, -0.85);
+    const dockPole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 1.6, 6), matWoodDark);
+    dockPole.position.set(0.2, 0.85, -0.95);
     dockGroup.add(dockPole);
-    const dockLantern = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), matLanternGlow);
-    dockLantern.position.set(0.1, 1.55, -0.85);
+    const dockLantern = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), matLanternGlow);
+    dockLantern.position.set(0.2, 1.65, -0.95);
     dockGroup.add(dockLantern);
     scene.add(dockGroup);
 
-    // Chemins en pierres (du ponton au comptoir, puis du comptoir au potager)
+    // Grandes allées pavées en pierre reliant tous les quartiers de l'île !
     const stoneCoords = [
-      [-5.6, 0.9], [-4.6, 0.95], [-3.6, 0.95],
-      [-2.0, 1.9], [-1.4, 1.7], [-0.8, 1.5], [-0.2, 1.3], [0.4, 1.1]
+      // Du ponton Ouest jusqu'au Chalet
+      [-16.2, 1.2], [-14.8, 1.2], [-13.4, 1.2], [-12.0, 1.2], [-10.6, 1.2],
+      [-9.2, 1.2],  [-7.8, 1.2],  [-6.4, 1.2],  [-5.0, 1.2],  [-3.6, 1.2],
+      // Du Chalet vers le Grand Potager Est
+      [-1.2, 1.5],  [0.1, 1.4],   [1.3, 1.4],
+      // Allée Nord vers le Puits et le Lac
+      [0.8, 0.1],   [1.4, -1.2],  [2.0, -2.5],  [2.6, -3.8],
+      [-5.8, -0.2], [-6.8, -1.8], [-7.8, -3.4],
+      // Allée Sud vers le Verger et les Baies
+      [-4.2, 2.6],  [-4.0, 4.2],  [-3.8, 5.8],  [-6.2, 3.8],  [-7.8, 4.6]
     ];
     stoneCoords.forEach(([sx, sz], i) => {
-      const stone = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.52, 0.1, 7), matStone);
+      const stone = new THREE.Mesh(new THREE.CylinderGeometry(0.54, 0.6, 0.1, 7), matStone);
       stone.position.set(sx, 0.11, sz);
       stone.rotation.y = i * 0.9;
       stone.receiveShadow = true;
@@ -1141,25 +1176,28 @@
       scene.add(g);
       trees.push(g);
     }
-    createTree(-7.2, -2.5, 1.2, 0x40916c);
-    createTree(-6.4, 3.6, 1.0, 0xffafcc); // Joli cerisier en fleurs roses !
-    createTree(-1.2, -6.5, 1.15, 0x52b788);
-    createTree(6.8, -2.5, 1.05, 0x74c69d);
-    createTree(6.6, 3.9, 1.1, 0x40916c);
-    createTree(-2.8, 6.2, 0.95, 0xffafcc); // Second petit cerisier au Sud
+    // Arbres disposés sur le grand périmètre de l'île (aucun arbre ne masque le grand lac aux poissons ni les bâtiments !)
+    createTree(-15.5, -5.2, 1.35, 0x40916c);
+    createTree(-13.2, 6.2, 1.25, 0xffafcc); // Grand cerisier en fleurs roses à l'Ouest !
+    createTree(-4.2, -12.5, 1.3, 0x52b788);
+    createTree(14.2, -7.2, 1.25, 0x74c69d);
+    createTree(15.5, 6.2, 1.3, 0x40916c);
+    createTree(-6.2, 11.2, 1.15, 0xffafcc); // Second cerisier rose au Sud-Ouest
+    createTree(4.2, 11.2, 1.2, 0x52b788);
+    createTree(12.2, 10.2, 1.15, 0xffafcc); // Troisième cerisier au Sud-Est
 
-    // Petits buissons et rochers décoratifs (placés hors des zones de culture)
+    // Petits buissons et rochers décoratifs répartis sur la grande île
     const bushMat = new THREE.MeshLambertMaterial({ color: 0x386641 });
-    [[-4.8, -1.2, 0.5], [5.8, -4.6, 0.55], [-4.5, 5.8, 0.48], [6.2, -3.2, 0.44]].forEach(([bx, bz, br]) => {
+    [[-14.2, -8.5, 0.65], [11.8, -8.6, 0.7], [-7.5, 8.8, 0.6], [13.2, 2.2, 0.6], [1.2, -9.8, 0.55]].forEach(([bx, bz, br]) => {
       const bush = new THREE.Mesh(new THREE.DodecahedronGeometry(br), bushMat);
       bush.position.set(bx, 0.1 + br * 0.6, bz);
       bush.castShadow = true;
       scene.add(bush);
     });
 
-    // 4.3b Moulin à vent Hay Day sur la colline (axe déporté & incliné sans collision)
+    // 4.3b Moulin à vent Hay Day sur la grande colline Nord-Est (axe déporté & incliné sans collision)
     const windmillGroup = new THREE.Group();
-    windmillGroup.position.set(2.5, 0.54, -6.2); // Posé au sommet de la colline reculée !
+    windmillGroup.position.set(6.8, 0.62, -10.5); // Posé au sommet de la grande colline Nord-Est !
     windmillGroup.rotation.y = Math.PI / 7;
 
     const millBase = new THREE.Mesh(
@@ -1317,24 +1355,24 @@
     }
 
     const flowerSpots = [
-      [-5.6, -0.4, 0xff5d8f, 1.1], [-5.9, 0.2, 0xffffff, 0.95], [-5.2, -0.6, 0xffbe0b, 1.0],
-      [-3.8, 3.4, 0xff8fab, 1.15], [-3.2, 3.9, 0xffffff, 0.9],  [-4.4, 3.8, 0x70d6ff, 1.05],
-      [-1.4, 4.3, 0xffbe0b, 1.1],  [-0.8, 4.7, 0xff5d8f, 0.95], [-1.9, 4.9, 0xffffff, 1.0],
-      [-0.6, 2.8, 0x70d6ff, 0.9],  [-0.2, 2.3, 0xff8fab, 1.05],
-      [-5.8, -2.2, 0xffbe0b, 1.0], [-3.4, -5.2, 0xff5d8f, 1.1], [-2.8, -5.6, 0xffffff, 0.95],
-      [6.3, 0.4, 0xff5d8f, 1.1],   [6.6, 1.1, 0x70d6ff, 0.95],  [6.1, 1.7, 0xffffff, 1.0],
-      [2.8, 5.6, 0xffbe0b, 1.1],   [3.5, 5.8, 0xff5d8f, 0.95],  [1.9, 5.7, 0xffffff, 1.05],
-      [7.4, -0.6, 0xffbe0b, 1.05], [7.8, 0.2, 0xffffff, 0.95],   [-6.8, 2.2, 0xff8fab, 1.1]
+      [-12.6, -2.4, 0xff5d8f, 1.15], [-11.9, -1.8, 0xffffff, 1.0], [-13.2, -3.1, 0xffbe0b, 1.1],
+      [-7.8, 5.4, 0xff8fab, 1.15],   [-7.2, 6.2, 0xffffff, 1.0],   [-8.4, 5.8, 0x70d6ff, 1.1],
+      [-1.4, 7.3, 0xffbe0b, 1.15],   [-0.8, 7.9, 0xff5d8f, 1.0],   [-2.2, 8.1, 0xffffff, 1.05],
+      [-0.4, 4.2, 0x70d6ff, 1.0],    [0.2, 3.6, 0xff8fab, 1.1],
+      [-5.8, -7.2, 0xffbe0b, 1.1],   [-4.4, -8.2, 0xff5d8f, 1.15], [-3.8, -8.6, 0xffffff, 1.0],
+      [11.3, 0.4, 0xff5d8f, 1.15],   [11.8, 1.4, 0x70d6ff, 1.0],   [11.1, 2.2, 0xffffff, 1.05],
+      [4.8, 8.2, 0xffbe0b, 1.15],    [5.6, 8.6, 0xff5d8f, 1.0],    [3.8, 8.4, 0xffffff, 1.1],
+      [12.4, -3.6, 0xffbe0b, 1.1],   [12.9, -2.8, 0xffffff, 1.0],  [-11.8, 3.2, 0xff8fab, 1.15]
     ];
     flowerSpots.forEach(([fx, fz, fcol, fsc]) => createFlower(fx, fz, fcol, fsc));
 
     // Lucioles 3D pour le crépuscule et la nuit
     const fireflies = [];
     const fireflyMat = new THREE.MeshBasicMaterial({ color: 0xffe66d });
-    for (let f = 0; f < 16; f++) {
-      const fly = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), fireflyMat);
-      const angle = (f / 16) * Math.PI * 2;
-      const rad = 2.5 + (f % 4) * 1.8;
+    for (let f = 0; f < 22; f++) {
+      const fly = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), fireflyMat);
+      const angle = (f / 22) * Math.PI * 2;
+      const rad = 4.2 + (f % 5) * 2.8;
       fly.position.set(Math.cos(angle) * rad, 0.8 + (f % 3) * 0.5, Math.sin(angle) * rad);
       fly.visible = false;
       scene.add(fly);
@@ -1419,12 +1457,12 @@
     let currentWeather = WEATHER_TYPES[0];
     let weatherTimer = 38; // Change de météo toutes les 38 à 55 secondes
 
-    // Nuages de pluie 3D et gouttes de pluie 3D sur toute l'île
+    // Nuages de pluie 3D et gouttes de pluie 3D sur toute la grande île
     const rainCloudsGroup = new THREE.Group();
-    rainCloudsGroup.position.y = 8.8;
+    rainCloudsGroup.position.y = 9.4;
     rainCloudsGroup.visible = false;
     const rainCloudMat = new THREE.MeshLambertMaterial({ color: 0x8d99ae, transparent: true, opacity: 0.86 });
-    [[-3.5, -1.5, 1.3], [1.8, 0.8, 1.5], [4.2, -2.2, 1.15]].forEach(([cx, cz, sc]) => {
+    [[-7.5, -3.5, 1.6], [1.8, 1.5, 1.8], [8.2, -4.2, 1.5], [-4.2, 5.5, 1.4]].forEach(([cx, cz, sc]) => {
       const cg = new THREE.Group();
       cg.position.set(cx, 0, cz);
       [[-0.8, 0, 0.9], [0, 0.25, 1.15], [0.85, 0.05, 0.85]].forEach(([bx, by, br]) => {
@@ -1439,9 +1477,9 @@
 
     const rainDrops = [];
     const rainDropMat = new THREE.MeshBasicMaterial({ color: 0x48cae4, transparent: true, opacity: 0.78 });
-    for (let r = 0; r < 60; r++) {
-      const drop = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.42, 0.035), rainDropMat);
-      drop.position.set((Math.random() - 0.5) * 18, Math.random() * 9, (Math.random() - 0.5) * 16);
+    for (let r = 0; r < 85; r++) {
+      const drop = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.45, 0.035), rainDropMat);
+      drop.position.set((Math.random() - 0.5) * 34, Math.random() * 9.5, (Math.random() - 0.5) * 30);
       drop.rotation.z = 0.15;
       drop.visible = false;
       scene.add(drop);
@@ -1476,27 +1514,27 @@
       }
 
       if (currentWeather.id === 'rain') {
-        rainCloudsGroup.position.x = Math.sin(elapsedSec * 0.35) * 1.4;
+        rainCloudsGroup.position.x = Math.sin(elapsedSec * 0.35) * 1.8;
         rainDrops.forEach(d => {
           d.mesh.position.y -= d.speed * dt;
           d.mesh.position.x -= 1.2 * dt;
           if (d.mesh.position.y < 0.1) {
-            d.mesh.position.y = 8.5 + Math.random() * 1.5;
-            d.mesh.position.x = (Math.random() - 0.5) * 18;
+            d.mesh.position.y = 9.0 + Math.random() * 1.5;
+            d.mesh.position.x = (Math.random() - 0.5) * 34;
           }
         });
       }
     }
 
-    // 4.4 Animaux 3D détaillés (Client au comptoir + Animaux qui se baladent dans la ferme !)
+    // 4.4 Animaux 3D détaillés (Client au comptoir + Animaux qui se baladent dans la grande ferme !)
     const animalAnchor = new THREE.Group();
-    animalAnchor.position.set(-2.5, 0.1, 0.9);
+    animalAnchor.position.set(-2.5, 0.1, 1.2);
     scene.add(animalAnchor);
 
     let activeAnimalMesh = null;
     let activeAnimalLegs = [];
     let animalJumpTimer = 0;
-    let animalWalkProgress = 1; // 0 = sur le ponton (-8.0), 1 = arrivé au comptoir (-2.5)
+    let animalWalkProgress = 1; // 0 = sur le ponton (-15.5), 1 = arrivé au comptoir (-2.5)
 
     function createAnimalModel(animalCfg, userDataPayload) {
       const group = new THREE.Group();
@@ -1621,20 +1659,20 @@
       return { group, legs };
     }
 
-    // Réseau de points de promenade autour de la ferme (évite le chalet et l'intérieur clôturé du potager)
+    // Réseau de points de promenade à travers toute la grande île (évite le chalet, le lac et l'intérieur clôturé du potager)
     const FARM_WAYPOINTS = [
-      { x: -5.2, z: 2.3,  neighbors: [1, 10] },      // 0: Près des cerisiers Ouest
-      { x: -5.0, z: 5.2,  neighbors: [0, 2] },       // 1: Clairière Sud-Ouest (près des baies)
-      { x: -1.8, z: 5.8,  neighbors: [1, 3, 9] },    // 2: Sentier Sud-Ouest
-      { x: 1.8,  z: 5.9,  neighbors: [2, 4, 9] },    // 3: Prairie Sud devant le potager
-      { x: 5.2,  z: 5.9,  neighbors: [3, 5] },       // 4: Prairie Sud-Est
-      { x: 8.6,  z: 4.2,  neighbors: [4, 6] },       // 5: Coin Sud-Est
-      { x: 9.2,  z: -1.2, neighbors: [5, 7] },       // 6: Prairie Est derrière les ruches
-      { x: 5.4,  z: -3.5, neighbors: [6, 8] },       // 7: Sentier Nord-Est devant le moulin
-      { x: 1.2,  z: -3.6, neighbors: [7, 10, 11] },  // 8: Près du puits au Nord
-      { x: -0.2, z: 2.8,  neighbors: [2, 3, 10] },   // 9: Bas de l'allée centrale
-      { x: -0.2, z: -0.6, neighbors: [0, 8, 9] },    // 10: Allée centrale entre chalet et potager
-      { x: -3.4, z: -3.4, neighbors: [8, 10] }       // 11: Bord du bassin de la cascade
+      { x: -11.5, z: 2.8,  neighbors: [1, 10] },      // 0: Près de l'entrée Ouest et du citronnier
+      { x: -7.5,  z: 7.2,  neighbors: [0, 2] },       // 1: Clairière Sud-Ouest
+      { x: -1.8,  z: 8.2,  neighbors: [1, 3, 9] },    // 2: Sentier Sud près des baies
+      { x: 4.5,   z: 8.2,  neighbors: [2, 4, 9] },    // 3: Grande prairie Sud devant le potager
+      { x: 10.2,  z: 7.8,  neighbors: [3, 5] },       // 4: Prairie Sud-Est
+      { x: 14.2,  z: 3.8,  neighbors: [4, 6] },       // 5: Coin Est
+      { x: 14.5,  z: -2.2, neighbors: [5, 7] },       // 6: Prairie Est derrière les ruches
+      { x: 8.8,   z: -5.8, neighbors: [6, 8] },       // 7: Sentier Nord-Est devant la colline du moulin
+      { x: 2.8,   z: -7.6, neighbors: [7, 10, 11] },  // 8: Au Nord du puits
+      { x: 0.4,   z: 4.2,  neighbors: [2, 3, 10] },   // 9: Bas de la grande allée centrale
+      { x: 0.4,   z: -1.2, neighbors: [0, 8, 9] },    // 10: Grande allée centrale entre chalet et potager
+      { x: -5.5,  z: -5.6, neighbors: [8, 10] }       // 11: Berge Sud-Est du grand lac aux Carpes Koï
     ];
 
     const roamingAnimals = [];
@@ -1710,13 +1748,14 @@
       }
     }
 
+    // Parcelles largement espacées (3.0 unités d'écart) pour que les étiquettes ne se chevauchent jamais !
     const plotCoords = [
-      { x: 1.8, z: -1.2 }, { x: 4.1, z: -1.2 },
-      { x: 1.8, z: 1.1 },  { x: 4.1, z: 1.1 },
-      { x: 1.8, z: 3.4 },  { x: 4.1, z: 3.4 },
-      { x: 6.4, z: -1.2, extra: true },
-      { x: 6.4, z: 1.1,  extra: true },
-      { x: 6.4, z: 3.4,  extra: true }
+      { x: 3.2, z: -1.6 }, { x: 6.2, z: -1.6 },
+      { x: 3.2, z: 1.4 },  { x: 6.2, z: 1.4 },
+      { x: 3.2, z: 4.4 },  { x: 6.2, z: 4.4 },
+      { x: 9.2, z: -1.6, extra: true },
+      { x: 9.2, z: 1.4,  extra: true },
+      { x: 9.2, z: 4.4,  extra: true }
     ];
 
     plotCoords.forEach((coord, idx) => {
@@ -1823,15 +1862,15 @@
       while (fenceGroup.children.length > 0) {
         fenceGroup.remove(fenceGroup.children[0]);
       }
-      const maxX = (state.upgrades && state.upgrades.extraPlots) ? 7.75 : 5.45;
-      const spanPosts = (state.upgrades && state.upgrades.extraPlots) ? 4 : 3;
-      addFenceSpan(0.45, -2.55, maxX, -2.55, spanPosts); // Nord
-      addFenceSpan(maxX, -2.55, maxX, 4.75, 4);          // Est
-      addFenceSpan(maxX, 4.75, 0.45, 4.75, spanPosts);   // Sud
-      addFenceSpan(0.45, -2.55, 0.45, 0.25, 2);          // Ouest (haut)
-      addFenceSpan(0.45, 1.95, 0.45, 4.75, 2);          // Ouest (bas)
-      addFencePost(0.45, 0.25, true);                    // Pilier d'entrée gauche
-      addFencePost(0.45, 1.95, true);                    // Pilier d'entrée droit
+      const maxX = (state.upgrades && state.upgrades.extraPlots) ? 10.9 : 7.9;
+      const spanPosts = (state.upgrades && state.upgrades.extraPlots) ? 5 : 4;
+      addFenceSpan(1.5, -3.3, maxX, -3.3, spanPosts); // Nord
+      addFenceSpan(maxX, -3.3, maxX, 6.1, 4);         // Est
+      addFenceSpan(maxX, 6.1, 1.5, 6.1, spanPosts);   // Sud
+      addFenceSpan(1.5, -3.3, 1.5, 0.3, 2);           // Ouest (haut)
+      addFenceSpan(1.5, 2.5, 1.5, 6.1, 2);            // Ouest (bas)
+      addFencePost(1.5, 0.3, true);                   // Pilier d'entrée gauche
+      addFencePost(1.5, 2.5, true);                   // Pilier d'entrée droit
     }
     rebuildGardenFence();
 
@@ -1879,10 +1918,10 @@
       return el;
     }
 
-    // A) 🐝 La Ruche d'Abeilles 3D (Produit du Miel automatiquement)
+    // A) 🐝 La Ruche d'Abeilles 3D (Produit du Miel automatiquement, placée bien à l'Est du potager)
     const hiveGroup = new THREE.Group();
-    const initialHiveX = (state.upgrades && state.upgrades.extraPlots) ? 9.1 : 7.3;
-    hiveGroup.position.set(initialHiveX, 0.1, 0.8);
+    const initialHiveX = (state.upgrades && state.upgrades.extraPlots) ? 13.5 : 10.5;
+    hiveGroup.position.set(initialHiveX, 0.1, 1.2);
 
     const hiveTable = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.14, 1.3), matWoodDark);
     hiveTable.position.y = 0.42;
@@ -1955,15 +1994,16 @@
     specialStations.hive = {
       id: 'hive',
       group: hiveGroup,
-      labelPos: new THREE.Vector3(initialHiveX, 2.1, 0.8),
+      labelPos: new THREE.Vector3(initialHiveX, 2.1, 1.2),
       labelEl: createStationLabel('hive', '🐝 Ruche'),
       readyAt: Date.now() + 12000,
       cooldown: 36000
     };
 
-    // B) 🫐 Le Bosquet de Buissons à Baies Sauvages 3D (Sud-Ouest)
+    // B) 🫐 Le Bosquet de Buissons à Baies Sauvages 3D (Sud-Ouest dégagé)
     const berryStationGroup = new THREE.Group();
-    berryStationGroup.position.set(-3.8, 0.1, 3.9);
+    berryStationGroup.position.set(-3.8, 0.1, 6.8);
+    berryStationGroup.scale.setScalar(1.22);
     const berryFoliageMat = new THREE.MeshLambertMaterial({ color: 0x2d6a4f });
     const berryFruitMat = new THREE.MeshLambertMaterial({ color: 0x7b2cbf });
     const berryFruitMeshes = [];
@@ -1999,15 +2039,16 @@
     specialStations.berries = {
       id: 'berries',
       group: berryStationGroup,
-      labelPos: new THREE.Vector3(-3.8, 1.65, 3.9),
+      labelPos: new THREE.Vector3(-3.8, 1.9, 6.8),
       labelEl: createStationLabel('berries', '🫐 Buissons'),
       readyAt: Date.now() + 10000,
       cooldown: 30000
     };
 
-    // C) 🪣 Le Puits en Pierre 3D (Arrose tout le potager d'un coup !)
+    // C) 🪣 Le Puits en Pierre 3D (Dégagé au Nord du potager, loin du toit du chalet !)
     const wellGroup = new THREE.Group();
-    wellGroup.position.set(-0.3, 0.1, -3.1);
+    wellGroup.position.set(2.8, 0.1, -5.6);
+    wellGroup.scale.setScalar(1.15);
 
     const wellWall = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.78, 0.75, 12), matStone);
     wellWall.position.y = 0.38;
@@ -2054,15 +2095,16 @@
     specialStations.well = {
       id: 'well',
       group: wellGroup,
-      labelPos: new THREE.Vector3(-0.3, 2.35, -3.1),
+      labelPos: new THREE.Vector3(2.8, 2.6, -5.6),
       labelEl: createStationLabel('well', '🪣 Puits'),
       readyAt: Date.now() + 1000,
       cooldown: 11000
     };
 
-    // D) 🍋 Le Citronnier du Verger 3D (Déblocable dans la Boutique)
+    // D) 🍋 Le Citronnier du Verger 3D (Dégagé dans la clairière Sud-Ouest)
     const lemonTreeGroup = new THREE.Group();
-    lemonTreeGroup.position.set(-5.8, 0.1, -0.8);
+    lemonTreeGroup.position.set(-9.5, 0.1, 4.8);
+    lemonTreeGroup.scale.setScalar(1.2);
     lemonTreeGroup.visible = !!(state.upgrades && state.upgrades.lemonTree);
 
     const lemonTrunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.28, 1.2, 7), matWoodDark);
@@ -2103,47 +2145,77 @@
     specialStations.lemons = {
       id: 'lemons',
       group: lemonTreeGroup,
-      labelPos: new THREE.Vector3(-5.8, 2.85, -0.8),
+      labelPos: new THREE.Vector3(-9.5, 3.1, 4.8),
       labelEl: lemonLabelEl,
       readyAt: Date.now() + 12000,
       cooldown: 32000,
       requiresUpgrade: 'lemonTree'
     };
 
-    // E) 🐟 Bassin aux Carpes Koï & Lanterne Zen (Déblocable dans la Boutique)
+    // E) 🐟 Grand Bassin aux Carpes Koï & Lanterne Zen (Grands poissons 3D bien visibles dans le lac Nord-Ouest !)
     const koiDecorGroup = new THREE.Group();
     koiDecorGroup.visible = !!(state.upgrades && state.upgrades.koiPond);
 
-    const toroBase = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.35, 0.75, 6), matStone);
-    toroBase.position.set(-4.3, 0.45, -3.4);
+    const toroBase = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.45, 0.95, 6), matStone);
+    toroBase.position.set(-6.2, 0.55, -7.2);
     koiDecorGroup.add(toroBase);
-    const toroLight = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), matLanternGlow);
-    toroLight.position.set(-4.3, 0.92, -3.4);
+    const toroLight = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), matLanternGlow);
+    toroLight.position.set(-6.2, 1.15, -7.2);
     koiDecorGroup.add(toroLight);
-    const toroRoof = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.3, 6), matStoneDark);
-    toroRoof.position.set(-4.3, 1.15, -3.4);
+    const toroRoof = new THREE.Mesh(new THREE.ConeGeometry(0.58, 0.38, 6), matStoneDark);
+    toroRoof.position.set(-6.2, 1.42, -7.2);
     koiDecorGroup.add(toroRoof);
-
-    const koiFishes = [];
-    const koiOrangeMat = new THREE.MeshLambertMaterial({ color: 0xff6b35 });
-    for (let k = 0; k < 3; k++) {
-      const kf = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), koiOrangeMat);
-      kf.scale.set(0.6, 0.4, 1.6);
-      koiDecorGroup.add(kf);
-      koiFishes.push({ mesh: kf, phase: k * 2.1 });
-    }
     scene.add(koiDecorGroup);
+
+    // 6 Grandes Carpes Koï 3D détaillées (corps + taches blanches + nageoire caudale animée) dans le grand lac (-10.0, 0.22, -7.2)
+    const koiFishes = [];
+    const koiColors = [0xff5400, 0xff9e00, 0xff4d6d, 0xff6b35, 0xffbe0b, 0xf72585];
+    const koiWhiteMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+    for (let k = 0; k < 6; k++) {
+      const fishGroup = new THREE.Group();
+      const fMat = new THREE.MeshLambertMaterial({ color: koiColors[k % koiColors.length] });
+
+      // Corps de la carpe (bien grand et visible !)
+      const fBody = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 10), fMat);
+      fBody.scale.set(0.68, 0.45, 1.85);
+      fishGroup.add(fBody);
+
+      // Tache blanche sur le dos façon vraie Carpe Koï Kohaku
+      const fSpot = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), koiWhiteMat);
+      fSpot.scale.set(0.7, 0.5, 1.2);
+      fSpot.position.set(0, 0.05, 0.06);
+      fishGroup.add(fSpot);
+
+      // Nageoire caudale à l'arrière
+      const fTail = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.38, 4), koiWhiteMat);
+      fTail.rotation.x = Math.PI / 2;
+      fTail.position.set(0, 0, -0.52);
+      fishGroup.add(fTail);
+
+      // Les 3 premières carpes nagent dès le début, et l'achat du Bassin Koï ajoute 3 carpes royales supplémentaires !
+      fishGroup.visible = (k < 3) || !!(state.upgrades && state.upgrades.koiPond);
+      scene.add(fishGroup);
+      koiFishes.push({
+        mesh: fishGroup,
+        tail: fTail,
+        phase: k * 1.05,
+        radius: 1.15 + (k % 3) * 0.72,
+        speed: 0.85 + (k % 2) * 0.25,
+        extra: k >= 3
+      });
+    }
 
     // F) 🐝 Seconde Ruche Royale (Déblocable dans la Boutique)
     const royalHiveGroup = hiveGroup.clone();
-    royalHiveGroup.position.set(initialHiveX, 0.1, -0.9);
+    royalHiveGroup.position.set(initialHiveX, 0.1, -1.6);
     royalHiveGroup.visible = !!(state.upgrades && state.upgrades.royalHive);
     scene.add(royalHiveGroup);
 
-    // G) 📋 Le Tableau de Commandes 3D en Bois (Près du Ponton d'Accueil, façon Hay Day !)
+    // G) 📋 Le Tableau de Commandes 3D en Bois (Bien dégagé le long de l'allée d'entrée Ouest !)
     const orderBoardGroup = new THREE.Group();
-    orderBoardGroup.position.set(-4.9, 0.1, -0.2);
-    orderBoardGroup.rotation.y = Math.PI / 5;
+    orderBoardGroup.position.set(-7.8, 0.1, -1.2);
+    orderBoardGroup.scale.setScalar(1.18);
+    orderBoardGroup.rotation.y = Math.PI / 6;
 
     [-0.65, 0.65].forEach((px) => {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 1.55, 7), matWoodDark);
@@ -2195,13 +2267,13 @@
     plotLabelsContainer.appendChild(orderBoardLabelEl);
 
     /* =========================================================================
-       5. INTERACTIONS TACTILES & SOURIS SUR LA 3D (RAYCASTER + ROTATION CAMÉRA)
+       5. INTERACTIONS TACTILES & SOURIS SUR LA 3D (DÉPLACEMENT 2D HAY DAY : GAUCHE / DROITE / HAUT / BAS + ZOOM)
        ========================================================================= */
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     let isDragging = false;
     let pointerDownPos = { x: 0, y: 0 };
-    let prevAngle = camAngle;
+    let lastPointerPos = { x: 0, y: 0 };
 
     window.addEventListener('pointerdown', (e) => {
       if (musicEnabled && !musicInterval) {
@@ -2211,14 +2283,29 @@
       if (e.target.closest('.hud-top, .hud-bottom, .modal-overlay, .client-bubble, .world-label')) return;
       isDragging = true;
       pointerDownPos = { x: e.clientX, y: e.clientY };
-      prevAngle = camAngle;
+      lastPointerPos = { x: e.clientX, y: e.clientY };
     });
 
     window.addEventListener('pointermove', (e) => {
       if (!isDragging) return;
-      const dx = e.clientX - pointerDownPos.x;
-      if (Math.abs(dx) > 6) {
-        camAngle = prevAngle - dx * 0.007;
+      const stepDx = e.clientX - lastPointerPos.x;
+      const stepDy = e.clientY - lastPointerPos.y;
+      lastPointerPos = { x: e.clientX, y: e.clientY };
+
+      if (Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y) > 5) {
+        // Déplacement libre de la caméra façon Hay Day (Gauche / Droite / Haut / Bas sur toute l'île !)
+        const panScale = (viewSize / Math.max(400, window.innerHeight)) / camZoom * 1.15;
+        const rightX = Math.cos(camAngle);
+        const rightZ = -Math.sin(camAngle);
+        const forwardX = -Math.sin(camAngle);
+        const forwardZ = -Math.cos(camAngle);
+
+        camTarget.x -= (stepDx * rightX - stepDy * forwardX) * panScale;
+        camTarget.z -= (stepDx * rightZ - stepDy * forwardZ) * panScale;
+
+        // Limites souples pour rester au-dessus de la grande île
+        camTarget.x = Math.max(-17, Math.min(17, camTarget.x));
+        camTarget.z = Math.max(-15, Math.min(15, camTarget.z));
         updateCameraPosition();
       }
     });
@@ -2234,7 +2321,7 @@
     });
 
     window.addEventListener('wheel', (e) => {
-      camZoom = Math.max(0.75, Math.min(1.55, camZoom - e.deltaY * 0.001));
+      camZoom = Math.max(0.55, Math.min(2.1, camZoom - e.deltaY * 0.001));
       updateCameraPosition();
     });
 
@@ -2624,11 +2711,12 @@
           }
         });
         rebuildGardenFence();
-        hiveGroup.position.x = 9.1;
-        royalHiveGroup.position.x = 9.1;
-        specialStations.hive.labelPos.x = 9.1;
+        hiveGroup.position.x = 13.5;
+        royalHiveGroup.position.x = 13.5;
+        specialStations.hive.labelPos.x = 13.5;
       } else if (upgradeId === 'koiPond') {
         koiDecorGroup.visible = true;
+        koiFishes.forEach(kf => { kf.mesh.visible = true; });
       } else if (upgradeId === 'royalHive') {
         royalHiveGroup.visible = true;
         state.inventory.miel = (state.inventory.miel || 0) + 1;
@@ -2873,8 +2961,8 @@
       // Animation de marche et de joie du client 3D au comptoir
       if (activeAnimalMesh) {
         if (animalWalkProgress < 1) {
-          animalWalkProgress = Math.min(1, animalWalkProgress + dt * 0.75);
-          animalAnchor.position.x = -8.0 + animalWalkProgress * 5.5;
+          animalWalkProgress = Math.min(1, animalWalkProgress + dt * 0.65);
+          animalAnchor.position.x = -15.5 + animalWalkProgress * 13.0;
           activeAnimalMesh.position.y = Math.abs(Math.sin(elapsed * 11)) * 0.14;
           activeAnimalMesh.rotation.y = Math.PI / 2;
           activeAnimalLegs.forEach((leg, li) => {
@@ -2938,14 +3026,14 @@
       });
 
       // Position de la bulle de commande au-dessus de l'animal 3D
-      const bubblePos = toScreenPosition(new THREE.Vector3(animalAnchor.position.x, 2.45, 0.9));
+      const bubblePos = toScreenPosition(new THREE.Vector3(animalAnchor.position.x, 2.45, 1.2));
       const bubbleEl = document.getElementById('client-bubble-wrapper');
       bubbleEl.style.left = `${bubblePos.x}px`;
       bubbleEl.style.top = `${bubblePos.y}px`;
       bubbleEl.style.opacity = animalWalkProgress >= 0.95 ? '1' : '0';
 
       // Position de l'étiquette 3D du Tableau de Commandes
-      const boardPos = toScreenPosition(new THREE.Vector3(-4.9, 2.0, -0.2));
+      const boardPos = toScreenPosition(new THREE.Vector3(-7.8, 2.2, -1.2));
       orderBoardLabelEl.style.left = `${boardPos.x}px`;
       orderBoardLabelEl.style.top = `${boardPos.y}px`;
 
@@ -3019,23 +3107,25 @@
         b.group.position.set(
           curHiveX + Math.cos(ang) * b.radius,
           1.15 + Math.sin(elapsed * 5 + i) * 0.22,
-          0.8 + Math.sin(ang) * b.radius
+          1.2 + Math.sin(ang) * b.radius
         );
         b.group.rotation.y = -ang;
       });
 
-      // Animation des Carpes Koï dans le bassin
-      if (koiDecorGroup.visible) {
-        koiFishes.forEach((kf) => {
-          const ang = elapsed * 1.4 + kf.phase;
-          kf.mesh.position.set(
-            -5.4 + Math.cos(ang) * 0.85,
-            0.16,
-            -3.5 + Math.sin(ang) * 0.85
-          );
-          kf.mesh.rotation.y = -ang;
-        });
-      }
+      // Animation des grandes Carpes Koï 3D dans le grand lac cristallin (-10.0, 0.22, -7.2)
+      koiFishes.forEach((kf) => {
+        if (!kf.mesh.visible) return;
+        const ang = elapsed * kf.speed + kf.phase;
+        kf.mesh.position.set(
+          -10.0 + Math.cos(ang) * kf.radius,
+          0.22,
+          -7.2 + Math.sin(ang) * kf.radius
+        );
+        kf.mesh.rotation.y = -ang;
+        if (kf.tail) {
+          kf.tail.rotation.y = Math.sin(elapsed * 9.5 + kf.phase) * 0.36;
+        }
+      });
 
       const berriesReady = now >= specialStations.berries.readyAt;
       berryFruitMeshes.forEach((fm, idx) => {
