@@ -434,7 +434,10 @@
         <div class="xp-bar-bg"><div class="xp-bar-fill" id="ui-xp-bar"></div></div>
         <span class="xp-subtext" id="ui-xp-text">0/45</span>
       </div>
-      <div class="pill" id="pill-coins">🪙 <span id="ui-coins">0</span></div>
+      <div class="pill clickable" id="pill-coins" onclick="openShopModal()" title="Trésorerie & Revenu passif du Refuge (toucher pour investir)">
+        🪙 <span id="ui-coins">0</span>
+        <span id="ui-passive-rate" style="font-size:0.72rem; color:#2d6a4f; background:#e6f2e4; padding:1px 6px; border-radius:99px; font-weight:900;">+2/min</span>
+      </div>
       <div class="pill">⭐ <span id="ui-hearts">0</span></div>
       <div class="pill clickable" id="pill-storage" onclick="openBarnModal()" title="Grange : stockage de tes récoltes (toucher pour vendre au marché)">
         📦 <span id="ui-storage">0/50</span>
@@ -520,11 +523,26 @@
     </div>
   </div>
 
+  <!-- MODALE RAPPORT DE PRODUCTION HORS-LIGNE (v2.9.0) -->
+  <div class="modal-overlay" id="modal-offline">
+    <div class="modal-box" style="max-width:410px;">
+      <div style="font-size:2.8rem;">🏮</div>
+      <h2 style="color:var(--green-dark); margin-bottom:4px;">Bon retour au Refuge !</h2>
+      <p style="font-size:0.82rem; color:#7d6b5d; margin-bottom:10px;" id="offline-time-text">Pendant ton absence, le salon de thé et la ferme ont continué de tourner :</p>
+      <div id="offline-summary-box" style="background:white; border:2px solid var(--wood-border); border-radius:16px; padding:12px; margin-bottom:12px; text-align:left; font-size:0.86rem; line-height:1.5;"></div>
+      <button class="btn-serve" style="width:100%;" onclick="claimOfflineRewards()">Encaisser les revenus ✨</button>
+    </div>
+  </div>
+
   <!-- MODALE BOUTIQUE D'AMÉLIORATIONS 3D -->
   <div class="modal-overlay" id="modal-shop">
-    <div class="modal-box">
-      <h2 style="color:var(--green-dark); margin-bottom:6px;">🛒 Boutique du Refuge</h2>
-      <p style="font-size:0.82rem; color:#7d6b5d; margin-bottom:12px;">Dépense tes pièces 🪙 pour agrandir la ferme et construire de nouveaux aménagements 3D !</p>
+    <div class="modal-box" style="max-width:430px;">
+      <h2 style="color:var(--green-dark); margin-bottom:4px;">🛒 Investissements du Domaine</h2>
+      <p style="font-size:0.8rem; color:#7d6b5d; margin-bottom:8px;">Améliore chaque bâtiment jusqu'au <strong>Niveau 5</strong> pour automatiser l'arrosage, multiplier le prix des thés et augmenter ton revenu passif (🪙/min) !</p>
+      <div style="background:#e6f2e4; border:2px solid #52b788; border-radius:14px; padding:7px 12px; margin-bottom:10px; font-size:0.82rem; font-weight:800; color:#2d6a4f; display:flex; justify-content:space-between; align-items:center;">
+        <span>📈 Revenu passif du Refuge :</span>
+        <span id="shop-passive-banner">+2 🪙 / min</span>
+      </div>
       <div id="shop-items"></div>
       <button class="btn-serve" style="width:100%; margin-top:8px;" onclick="closeModal('modal-shop')">Retour à la ferme 🌻</button>
     </div>
@@ -572,19 +590,19 @@
        1. CONFIGURATION ET TEXTES DU JEU
        ========================================================================= */
     const GAME_CONFIG = {
-      version: "v2.8.0",
-      grandGoalHearts: 80,
+      version: "v2.9.0",
+      grandGoalHearts: 120,
       grandGiftTitle: "Diplôme de Maître Herboriste 🏆",
-      grandGiftMessage: "Félicitations ! Grâce à ton savoir-faire et tes récoltes, le Refuge des Thés est devenu l'adresse la plus réputée de la vallée. Tous les habitants de la forêt viennent goûter tes infusions artisanales !",
+      grandGiftMessage: "Félicitations ! Grâce à ton savoir-faire et tes investissements, le Refuge des Thés est devenu le domaine le plus prospère et réputé de la vallée. Tous les habitants de la forêt viennent déguster tes grands crus !",
       
-      // sellPrice = prix de base au Marché (fluctue chaque jour entre -30% et +50%)
+      // Économie échelonnée : des herbes rapides de début de partie aux grands crus très lucratifs !
       ingredients: {
-        camomille: { id: "camomille", name: "Camomille", icon: "🌼", growTime: 22, seedCost: 1, sellPrice: 3, minLevel: 1, color: 0xf4d35e, shape: "flower" },
-        menthe:    { id: "menthe",    name: "Menthe",    icon: "🍃", growTime: 28, seedCost: 1, sellPrice: 3, minLevel: 1, color: 0x52b788, shape: "leafy" },
-        baies:     { id: "baies",     name: "Baies",     icon: "🫐", growTime: 34, seedCost: 2, sellPrice: 5, minLevel: 1, color: 0x7b2cbf, shape: "berry" },
-        miel:      { id: "miel",      name: "Miel",      icon: "🍯", growTime: 40, seedCost: 3, sellPrice: 7, minLevel: 1, color: 0xf4a261, shape: "fruit" },
-        lavande:   { id: "lavande",   name: "Lavande",   icon: "💜", growTime: 36, seedCost: 2, sellPrice: 6, minLevel: 2, color: 0x9d4edd, shape: "spike" },
-        citron:    { id: "citron",    name: "Citron",    icon: "🍋", growTime: 45, seedCost: 3, sellPrice: 8, minLevel: 3, color: 0xffea00, shape: "fruit" }
+        camomille: { id: "camomille", name: "Camomille", icon: "🌼", growTime: 20, seedCost: 2,  sellPrice: 5,  minLevel: 1, color: 0xf4d35e, shape: "flower" },
+        menthe:    { id: "menthe",    name: "Menthe",    icon: "🍃", growTime: 28, seedCost: 3,  sellPrice: 8,  minLevel: 1, color: 0x52b788, shape: "leafy" },
+        baies:     { id: "baies",     name: "Baies",     icon: "🫐", growTime: 38, seedCost: 5,  sellPrice: 13, minLevel: 1, color: 0x7b2cbf, shape: "berry" },
+        miel:      { id: "miel",      name: "Miel",      icon: "🍯", growTime: 52, seedCost: 9,  sellPrice: 22, minLevel: 1, color: 0xf4a261, shape: "fruit" },
+        lavande:   { id: "lavande",   name: "Lavande",   icon: "💜", growTime: 46, seedCost: 7,  sellPrice: 18, minLevel: 2, color: 0x9d4edd, shape: "spike" },
+        citron:    { id: "citron",    name: "Citron",    icon: "🍋", growTime: 68, seedCost: 14, sellPrice: 34, minLevel: 3, color: 0xffea00, shape: "fruit" }
       },
 
       orderClients: [
@@ -593,41 +611,77 @@
         { name: "Boulangerie des Chênes", icon: "🥖" },
         { name: "Marché de la Clairière", icon: "🧺" },
         { name: "Refuge des Montagnes", icon: "⛰️" },
-        { name: "Observatoire Étoilé", icon: "🔭" }
+        { name: "Observatoire Étoilé", icon: "🔭" },
+        { name: "Grand Hôtel de la Vallée", icon: "🏰" }
       ],
 
+      // Chaque investissement possède 5 Niveaux d'évolution pour faire décoller l'économie et automatiser la ferme !
       shopUpgrades: [
         {
+          id: "sprinkler",
+          name: "Arroseur Automatique 3D & Irrigation",
+          icon: "💦",
+          baseCost: 35,
+          costMult: 2.1,
+          maxLevel: 5,
+          passivePerLevel: 4,
+          minLevel: 1,
+          desc: "Installe un tourniquet d'arrosage 3D au cœur du potager qui réhydrate les parcelles tout seul (même hors-ligne !) et garde l'eau +45% plus longtemps par niveau."
+        },
+        {
+          id: "teaSalon",
+          name: "Prestige du Salon de Thé",
+          icon: "🍵",
+          baseCost: 45,
+          costMult: 2.2,
+          maxLevel: 5,
+          passivePerLevel: 10,
+          minLevel: 1,
+          desc: "Augmente le prix de vente de chaque infusion servie de +40% par niveau et rapporte +10 🪙/min de revenu passif par niveau !"
+        },
+        {
           id: "extraPlots",
-          name: "Extension du Potager (9 Parcelles)",
+          name: "Extension & Terroir Fertile (9 Parcelles)",
           icon: "🌱",
-          cost: 50,
+          baseCost: 55,
+          costMult: 2.25,
+          maxLevel: 5,
+          passivePerLevel: 6,
           minLevel: 2,
-          desc: "Débloque 3 nouvelles parcelles de terre 3D et agrandit la clôture en bois !"
+          desc: "Débloque les 9 parcelles dès le Niv.1 et ajoute +1 récolte bonus par parcelle à chaque niveau (jusqu'à x6 par récolte !)."
         },
         {
           id: "lemonTree",
-          name: "Citronnier du Verger 3D",
+          name: "Verger de Citronniers Grands Crus",
           icon: "🍋",
-          cost: 70,
+          baseCost: 85,
+          costMult: 2.2,
+          maxLevel: 5,
+          passivePerLevel: 14,
           minLevel: 3,
-          desc: "Plante un grand citronnier 3D près du chalet qui produit +2 🍋 Citrons toutes les 32s !"
+          desc: "Plante le grand Citronnier 3D, augmente sa récolte (+1 🍋 par niveau) et génère +14 🪙/min de revenu passif par niveau !"
         },
         {
           id: "koiPond",
-          name: "Bassin Carpes Koï & Lanterne Zen",
+          name: "Bassin Impérial aux Carpes Koï",
           icon: "🐟",
-          cost: 95,
+          baseCost: 115,
+          costMult: 2.25,
+          maxLevel: 5,
+          passivePerLevel: 18,
           minLevel: 3,
-          desc: "Ajoute 3 carpes Koï animées + lanterne en pierre au bassin (+8 🪙 par thé servi) !"
+          desc: "Ajoute 3 carpes royales + lanterne zen, donne +15 🪙 de pourboire par thé/niv et +18 🪙/min de revenu passif par niveau !"
         },
         {
           id: "royalHive",
-          name: "Ruche Royale & Engrais Bio",
+          name: "Rucher Royal & Moulin Doré",
           icon: "🐝",
-          cost: 130,
+          baseCost: 150,
+          costMult: 2.3,
+          maxLevel: 5,
+          passivePerLevel: 25,
           minLevel: 4,
-          desc: "Ajoute une 2e ruche dorée et accélère de +30% toutes les récoltes de l'île !"
+          desc: "Ajoute la 2e ruche dorée, accélère toutes les cultures de +12%/niv et génère +25 🪙/min de revenu passif par niveau !"
         }
       ],
 
@@ -879,6 +933,11 @@
       };
       let data = raw ? JSON.parse(raw) : def;
       if (!data.upgrades) data.upgrades = {};
+      // v2.9.0 : Migration des améliorations booléennes vers des niveaux évolutifs (1 à 5)
+      Object.keys(data.upgrades).forEach(k => {
+        if (data.upgrades[k] === true) data.upgrades[k] = 1;
+        else if (typeof data.upgrades[k] !== 'number') data.upgrades[k] = 0;
+      });
       if (typeof data.level !== 'number' || data.level < 1) {
         data.level = Math.max(1, Math.floor((data.hearts || 0) / 25) + 1);
       }
@@ -921,7 +980,7 @@
 
     // 📦 Grange : capacité de stockage limitée (gestion façon Hay Day)
     const BARN_BASE_CAP = 50;
-    const BARN_CAP_STEP = 25;
+    const BARN_CAP_STEP = 30;
     function getStorageCap() {
       return BARN_BASE_CAP + ((state.barnLevel || 1) - 1) * BARN_CAP_STEP;
     }
@@ -929,7 +988,7 @@
       return Object.keys(GAME_CONFIG.ingredients).reduce((sum, k) => sum + (state.inventory[k] || 0), 0);
     }
     function getBarnUpgradeCost() {
-      return 40 + ((state.barnLevel || 1) - 1) * 35;
+      return Math.round(45 * Math.pow(1.65, (state.barnLevel || 1) - 1));
     }
     // Ajoute au stock dans la limite de la place disponible, renvoie la quantité réellement stockée
     function storeItem(id, qty) {
@@ -937,6 +996,58 @@
       const added = Math.min(qty, free);
       if (added > 0) state.inventory[id] = (state.inventory[id] || 0) + added;
       return added;
+    }
+
+    // 💰 v2.9.0 : Système d'Économie Évolutive, Niveaux d'Amélioration (0 -> 5) & Revenu Passif (🪙/min)
+    function getUpgradeLevel(id) {
+      if (!state.upgrades) return 0;
+      const v = state.upgrades[id];
+      return typeof v === 'number' ? v : (v ? 1 : 0);
+    }
+
+    function getUpgradeCost(upg) {
+      const lvl = getUpgradeLevel(upg.id);
+      return Math.round(upg.baseCost * Math.pow(upg.costMult || 2.15, lvl));
+    }
+
+    function getPassiveCoinsPerMin() {
+      let rate = 2 + ((state.level || 1) - 1) * 3; // Revenu de base du salon de thé
+      GAME_CONFIG.shopUpgrades.forEach(u => {
+        const lvl = getUpgradeLevel(u.id);
+        if (lvl > 0 && u.passivePerLevel) {
+          rate += lvl * u.passivePerLevel;
+        }
+      });
+      return rate;
+    }
+
+    function getSoilDryTime() {
+      // Plus l'irrigation est améliorée, plus la terre garde son humidité longtemps !
+      return 28 * (1 + getUpgradeLevel('sprinkler') * 0.45);
+    }
+
+    function getCropSpeedMult() {
+      return Math.max(0.35, 1 - getUpgradeLevel('royalHive') * 0.12);
+    }
+
+    function getPlotHarvestQty() {
+      return 1 + getUpgradeLevel('extraPlots');
+    }
+
+    function getStationHarvestQty(stationId) {
+      if (stationId === 'lemons') return Math.max(1, 1 + getUpgradeLevel('lemonTree'));
+      return 1 + Math.floor((getUpgradeLevel('royalHive') + 1) / 2);
+    }
+
+    function calculateTeaPrice(recipeIds, animalId) {
+      const baseIngValue = recipeIds.reduce((sum, id) => {
+        const ing = GAME_CONFIG.ingredients[id];
+        return sum + (ing ? ing.sellPrice : 5);
+      }, 0);
+      const salonMult = 1 + getUpgradeLevel('teaSalon') * 0.40;
+      const koiTip = getUpgradeLevel('koiPond') * 15;
+      const loyaltyBonus = Math.min(30, (state.friendship[animalId] || 0) * 3);
+      return Math.round((baseIngValue * 1.65 + 6) * salonMult + koiTip + loyaltyBonus);
     }
 
     // 🧺 Marché : prix qui fluctuent chaque jour
@@ -2814,11 +2925,43 @@
     plotLabelsContainer.appendChild(barnLabelEl);
     const barnLabelPos = new THREE.Vector3(-0.5, 4.3, -13.2);
 
+    // I) 💦 Tourniquet d'Arrosage Automatique 3D en Cuivre au centre du potager (v2.9.0)
+    const sprinklerGroup = new THREE.Group();
+    sprinklerGroup.position.set(4.7, 0.1, 1.4);
+    const copperMat = new THREE.MeshLambertMaterial({ color: 0xd08c60 });
+    const brassMat = new THREE.MeshLambertMaterial({ color: 0xf4b942 });
+    const spBase = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.4, 0.18, 10), matStoneDark);
+    spBase.position.y = 0.09;
+    sprinklerGroup.add(spBase);
+    const spPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.72, 8), copperMat);
+    spPipe.position.y = 0.44;
+    sprinklerGroup.add(spPipe);
+    const sprinklerHead = new THREE.Group();
+    sprinklerHead.position.y = 0.82;
+    const spHub = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), brassMat);
+    sprinklerHead.add(spHub);
+    const spArms = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.95, 6), brassMat);
+    spArms.rotation.z = Math.PI / 2;
+    sprinklerHead.add(spArms);
+    [-0.46, 0.46].forEach(nx => {
+      const noz = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), new THREE.MeshBasicMaterial({ color: 0x00b4d8 }));
+      noz.position.x = nx;
+      sprinklerHead.add(noz);
+    });
+    sprinklerGroup.add(sprinklerHead);
+    sprinklerGroup.visible = getUpgradeLevel('sprinkler') >= 1;
+    scene.add(sprinklerGroup);
+    let autoSprinklerTimer = 0;
+
     /* =========================================================================
-       4.7 RESTAURATION DE LA SAUVEGARDE DU POTAGER + POUSSE HORS-LIGNE (v2.8.0)
+       4.7 RESTAURATION DU POTAGER + VRAIE PRODUCTION & REVENUS HORS-LIGNE (v2.9.0)
        ========================================================================= */
-    const offlineSec = Math.min(1800, Math.max(0, (Date.now() - (state.lastSeen || Date.now())) / 1000));
-    let offlineGrewSomething = false;
+    const offlineSec = Math.min(28800, Math.max(0, (Date.now() - (state.lastSeen || Date.now())) / 1000)); // Jusqu'à 8h hors-ligne !
+    const hasAutoSprinkler = getUpgradeLevel('sprinkler') >= 1;
+    const curDryTime = getSoilDryTime();
+    const offlineHarvested = {};
+    let pendingOfflineCoins = 0;
+
     plotsData.forEach((plot, idx) => {
       const saved = state.plots[idx];
       if (saved) {
@@ -2831,26 +2974,92 @@
           plot.wateredElapsed = saved.wateredElapsed || 0;
         }
       }
-      // Les cultures continuent de pousser pendant ton absence (tant que la terre reste humide, max 30 min)
       if (offlineSec > 5 && plot.unlocked) {
-        if (plot.state === 'growing') {
-          const wetTime = plot.moisture * SOIL_DRY_TIME;
-          const grow = Math.min(offlineSec, wetTime);
-          if (grow > 1) offlineGrewSomething = true;
-          plot.wateredElapsed += grow;
-          if (plot.wateredElapsed >= plot.duration) {
-            plot.wateredElapsed = plot.duration;
-            plot.state = 'ready';
+        if (hasAutoSprinkler) {
+          // Avec l'Arroseur Automatique 3D, le sol reste 100% hydraté hors-ligne et l'apprenti récolte les cycles supplémentaires !
+          plot.moisture = 1.0;
+          if (plot.state === 'growing' && plot.crop) {
+            const totalElapsed = plot.wateredElapsed + offlineSec;
+            if (totalElapsed >= plot.duration) {
+              const extraCycles = Math.min(6, Math.floor((totalElapsed - plot.duration) / Math.max(20, plot.duration)));
+              if (extraCycles > 0) {
+                const added = storeItem(plot.crop, extraCycles * getPlotHarvestQty());
+                if (added > 0) offlineHarvested[plot.crop] = (offlineHarvested[plot.crop] || 0) + added;
+              }
+              plot.wateredElapsed = plot.duration;
+              plot.state = 'ready';
+            } else {
+              plot.wateredElapsed = totalElapsed;
+            }
           }
+        } else {
+          // Sans arroseur auto, la plante pousse tant que l'humidité du sol dure (ralentie par le niveau du puits)
+          if (plot.state === 'growing') {
+            const wetTime = plot.moisture * curDryTime;
+            const grow = Math.min(offlineSec, wetTime);
+            plot.wateredElapsed += grow;
+            if (plot.wateredElapsed >= plot.duration) {
+              plot.wateredElapsed = plot.duration;
+              plot.state = 'ready';
+            }
+          }
+          plot.moisture = Math.max(0, plot.moisture - offlineSec / curDryTime);
         }
-        plot.moisture = Math.max(0, plot.moisture - offlineSec / SOIL_DRY_TIME);
       }
       rebuildPlotPlant3D(plot);
     });
+
     Object.values(specialStations).forEach(st => {
       const savedReady = state.stations[st.id];
       if (typeof savedReady === 'number') st.readyAt = savedReady;
     });
+
+    // Récoltes automatiques hors-ligne des Ruches, Baies et Citronnier + Revenu passif en pièces 🪙 !
+    if (offlineSec >= 30) {
+      const passiveRate = getPassiveCoinsPerMin();
+      pendingOfflineCoins = Math.max(4, Math.round((offlineSec / 60) * passiveRate));
+
+      const stationCycles = Math.min(8, Math.floor(offlineSec / 45));
+      if (stationCycles > 0) {
+        const bAdd = storeItem('baies', stationCycles * getStationHarvestQty('berries'));
+        if (bAdd > 0) offlineHarvested.baies = (offlineHarvested.baies || 0) + bAdd;
+        const mAdd = storeItem('miel', stationCycles * getStationHarvestQty('hive'));
+        if (mAdd > 0) offlineHarvested.miel = (offlineHarvested.miel || 0) + mAdd;
+        if (getUpgradeLevel('lemonTree') >= 1) {
+          const cAdd = storeItem('citron', stationCycles * getStationHarvestQty('lemons'));
+          if (cAdd > 0) offlineHarvested.citron = (offlineHarvested.citron || 0) + cAdd;
+        }
+      }
+
+      setTimeout(() => {
+        const mins = Math.max(1, Math.round(offlineSec / 60));
+        const timeStr = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}min` : `${mins} min`;
+        document.getElementById('offline-time-text').innerText = `Pendant tes ${timeStr} d'absence, le domaine a continué de prospérer :`;
+        const harvList = Object.entries(offlineHarvested).map(([k, q]) => {
+          const ing = GAME_CONFIG.ingredients[k];
+          return `<span style="background:#e6f2e4; border:1px solid #52b788; padding:2px 8px; border-radius:99px; font-weight:800; color:#2d6a4f;">+${q} ${ing.icon} ${ing.name}</span>`;
+        }).join(' ');
+        document.getElementById('offline-summary-box').innerHTML = `
+          <div style="font-weight:900; font-size:1.05rem; color:#c85a32; margin-bottom:6px;">💰 +${pendingOfflineCoins} 🪙 générés par le Salon de Thé (${passiveRate} 🪙/min)</div>
+          <div style="margin-bottom:6px;">📦 <strong>Récoltes stockées dans la Grange :</strong><br>${harvList || '<span style="color:#8c7b6b;">Aucune récolte auto (reste moins de 45s ou grange pleine)</span>'}</div>
+          <div style="font-size:0.76rem; color:#6d5c4d;">${hasAutoSprinkler ? '💦 Ton Arroseur Automatique 3D a maintenu tout le potager à 100% d\'humidité !' : '💡 Astuce : Débloque l\'Arroseur Automatique 3D dans la Boutique 🛒 pour que tes plantes ne sèchent plus jamais !'}</div>
+        `;
+        document.getElementById('modal-offline').style.display = 'flex';
+      }, 650);
+    }
+
+    function claimOfflineRewards() {
+      if (pendingOfflineCoins > 0) {
+        state.coins += pendingOfflineCoins;
+        sfxSuccess();
+        flyIconToHUD('🪙', window.innerWidth / 2, window.innerHeight / 2, 'pill-coins', 5);
+        spawnFloatingText(`+${pendingOfflineCoins} 🪙 encaissés !`, window.innerWidth / 2 - 70, window.innerHeight / 3, '#f4b942');
+        pendingOfflineCoins = 0;
+        saveGame();
+        renderDock();
+      }
+      closeModal('modal-offline');
+    }
 
     worldSnapshotFn = () => {
       state.plots = plotsData.map(p => ({
@@ -2863,14 +3072,6 @@
       state.stations = {};
       Object.values(specialStations).forEach(st => { state.stations[st.id] = st.readyAt; });
     };
-
-    if (offlineSec > 90) {
-      setTimeout(() => {
-        showBanner('🌿 Bon retour !', offlineGrewSomething
-          ? `Tes cultures ont poussé pendant ton absence (${Math.round(offlineSec / 60)} min)`
-          : 'Pense à arroser au puits pour que tes plantes poussent même quand tu pars !');
-      }, 900);
-    }
 
     // Sauvegarde automatique régulière + à la fermeture de l'onglet
     setInterval(() => saveGame(), 10000);
@@ -3096,8 +3297,8 @@
         return;
       }
 
-      const speedMult = (state.upgrades && state.upgrades.royalHive) ? 0.7 : 1;
-      const bonusQty = (state.upgrades && state.upgrades.royalHive) ? 2 : 1;
+      const speedMult = getCropSpeedMult();
+      const bonusQty = getStationHarvestQty(stationId);
 
       // Récolte d'une station de production (ruche, buissons, citronnier) avec gestion du stockage de la grange
       const harvestStation = (itemId, color, xp) => {
@@ -3120,12 +3321,12 @@
       };
 
       if (stationId === 'hive') {
-        harvestStation('miel', '#f4b942', 8);
+        harvestStation('miel', '#f4b942', 10);
       } else if (stationId === 'berries') {
-        harvestStation('baies', '#7b2cbf', 8);
+        harvestStation('baies', '#7b2cbf', 9);
       } else if (stationId === 'lemons') {
-        if (!state.upgrades || !state.upgrades.lemonTree) return;
-        harvestStation('citron', '#ffbe0b', 10);
+        if (getUpgradeLevel('lemonTree') < 1) return;
+        harvestStation('citron', '#ffbe0b', 14);
       } else if (stationId === 'well') {
         sfxSuccess();
         st.readyAt = now + st.cooldown;
@@ -3165,11 +3366,12 @@
           costMsg = 'Graine offerte 🎁';
         }
         sfxPlant();
-        const speedMult = (state.upgrades && state.upgrades.royalHive) ? 0.7 : 1;
+        const speedMult = getCropSpeedMult();
         plot.state = 'growing';
         plot.crop = selectedSeed;
         plot.wateredElapsed = 0;
         plot.duration = Math.max(8, Math.round(ing.growTime * speedMult));
+        if (getUpgradeLevel('sprinkler') >= 1) plot.moisture = Math.max(plot.moisture, 0.85);
         rebuildPlotPlant3D(plot);
         plot.pop = 0.4;
         spawnBurst3D(plot.group.position.x, 0.5, plot.group.position.z, [0x7f5539, 0x95d5b2, 0x6f4518], 10, 0.6);
@@ -3179,7 +3381,7 @@
         spawnFloatingText(`🌱 ${ing.name}${dryHint}`, screenX - 55, screenY, '#52b788');
       } else if (plot.state === 'ready') {
         const ing = GAME_CONFIG.ingredients[plot.crop];
-        const qty = (state.upgrades && state.upgrades.royalHive) ? 2 : 1;
+        const qty = getPlotHarvestQty();
         const added = storeItem(plot.crop, qty);
         if (added <= 0) {
           warnStorageFull(screenX, screenY);
@@ -3222,10 +3424,13 @@
     function addXP(amount) {
       state.xp = (state.xp || 0) + amount;
       let leveledUp = false;
+      let totalBonusCoins = 0;
       while (state.xp >= getXpNeeded(state.level)) {
         state.xp -= getXpNeeded(state.level);
         state.level = (state.level || 1) + 1;
-        state.coins += 25;
+        const lvlReward = 25 + state.level * 15;
+        state.coins += lvlReward;
+        totalBonusCoins += lvlReward;
         leveledUp = true;
       }
       if (leveledUp) {
@@ -3234,9 +3439,9 @@
         let unlockMsg = '';
         if (newLvl === 2) unlockMsg = ' • 💜 Lavande, 🐿️ Écureuil & Extension débloqués !';
         else if (newLvl === 3) unlockMsg = ' • 🍋 Citron, 🦉 Hibou & Citronnier débloqués !';
-        else if (newLvl === 4) unlockMsg = ' • 🐝 Ruche Royale débloquée !';
+        else if (newLvl === 4) unlockMsg = ' • 🐝 Rucher Royal débloqué !';
         setTimeout(() => {
-          showBanner(`🎉 Niveau ${newLvl} !`, `+25 🪙${unlockMsg}`);
+          showBanner(`🎉 Niveau ${newLvl} !`, `+${totalBonusCoins} 🪙${unlockMsg}`);
           spawnBurst3D(-2.5, 4.2, -2.5, [0xff5d8f, 0xffd166, 0x70d6ff, 0x95d5b2, 0xc77dff, 0xffffff], 40, 1.4);
         }, 250);
         renderDock();
@@ -3259,21 +3464,24 @@
       const lvl = getFarmLevel();
       const unlockedIngs = Object.values(GAME_CONFIG.ingredients).filter(i => (i.minLevel || 1) <= lvl);
       const sender = GAME_CONFIG.orderClients[Math.floor(Math.random() * GAME_CONFIG.orderClients.length)];
-      const numItems = (lvl >= 2 && Math.random() < 0.45) ? 3 : 2;
+      const numItems = (lvl >= 3 && Math.random() < 0.45) ? 4 : ((lvl >= 2 && Math.random() < 0.5) ? 3 : 2);
       const reqs = {};
+      let baseValue = 0;
       for (let i = 0; i < numItems; i++) {
-        const pick = unlockedIngs[Math.floor(Math.random() * unlockedIngs.length)].id;
-        reqs[pick] = (reqs[pick] || 0) + 1;
+        const pickObj = unlockedIngs[Math.floor(Math.random() * unlockedIngs.length)];
+        reqs[pickObj.id] = (reqs[pickObj.id] || 0) + 1;
+        baseValue += pickObj.sellPrice;
       }
       const totalCount = Object.values(reqs).reduce((a, b) => a + b, 0);
+      const salonMult = 1 + getUpgradeLevel('teaSalon') * 0.25;
       return {
         id: 'ord_' + Math.random().toString(36).slice(2, 8),
         senderName: sender.name,
         senderIcon: sender.icon,
         reqs: reqs,
-        coins: totalCount * 11 + Math.floor(Math.random() * 8),
-        xp: totalCount * 9,
-        hearts: 8
+        coins: Math.round((baseValue * 2.1 + 10) * salonMult),
+        xp: totalCount * 11,
+        hearts: 8 + totalCount * 2
       };
     }
 
@@ -3362,6 +3570,9 @@
       if (xpTxt) xpTxt.innerText = `${curXp}/${needed}`;
 
       document.getElementById('ui-coins').innerText = state.coins;
+      const passiveRate = getPassiveCoinsPerMin();
+      const rateEl = document.getElementById('ui-passive-rate');
+      if (rateEl) rateEl.innerText = `+${passiveRate}/min`;
       document.getElementById('ui-hearts').innerText = state.hearts;
       document.getElementById('ui-version').innerText = GAME_CONFIG.version;
 
@@ -3387,38 +3598,50 @@
         boardTag.className = readyOrders > 0 ? 'plot-tag ready' : 'plot-tag';
       }
 
-      const canBuyAny = GAME_CONFIG.shopUpgrades.some(
-        u => !(state.upgrades && state.upgrades[u.id]) && state.coins >= u.cost && lvl >= (u.minLevel || 1)
-      );
+      const canBuyAny = GAME_CONFIG.shopUpgrades.some(u => {
+        const curLvl = getUpgradeLevel(u.id);
+        return curLvl < (u.maxLevel || 5) && state.coins >= getUpgradeCost(u) && lvl >= (u.minLevel || 1);
+      });
       document.getElementById('shop-dot').style.display = canBuyAny ? 'block' : 'none';
 
       const animal = GAME_CONFIG.animals[state.currentAnimalIndex];
+      const teaPrice = calculateTeaPrice(animal.recipe, animal.id);
       document.getElementById('hud-animal-name').innerText = `${animal.icon} ${animal.name}`;
-      document.getElementById('hud-animal-req').innerHTML = animal.recipe
-        .map(id => GAME_CONFIG.ingredients[id].icon)
-        .join(' + ');
+      document.getElementById('hud-animal-req').innerHTML =
+        animal.recipe.map(id => GAME_CONFIG.ingredients[id].icon).join(' + ') +
+        ` <span style="font-size:0.76rem; background:#fff3c4; border:1px solid #f4b942; color:#9c6615; padding:1px 6px; border-radius:99px; font-weight:900;">+${teaPrice} 🪙</span>`;
     }
 
     function openShopModal() {
       sfxClick();
       const lvl = getFarmLevel();
+      const bannerEl = document.getElementById('shop-passive-banner');
+      if (bannerEl) bannerEl.innerText = `+${getPassiveCoinsPerMin()} 🪙 / min`;
       const containerEl = document.getElementById('shop-items');
       containerEl.innerHTML = GAME_CONFIG.shopUpgrades.map(u => {
-        const owned = !!(state.upgrades && state.upgrades[u.id]);
+        const curLvl = getUpgradeLevel(u.id);
+        const maxLvl = u.maxLevel || 5;
+        const isMax = curLvl >= maxLvl;
+        const cost = getUpgradeCost(u);
         const levelOk = lvl >= (u.minLevel || 1);
-        const canAfford = state.coins >= u.cost && levelOk;
-        let btnLabel = `${u.cost} 🪙`;
-        if (owned) btnLabel = 'Acquis ✅';
+        const canAfford = !isMax && state.coins >= cost && levelOk;
+        let btnLabel = `${cost} 🪙`;
+        if (isMax) btnLabel = 'Niv. MAX 🏆';
         else if (!levelOk) btnLabel = `🔒 Niv.${u.minLevel}`;
+        const stars = '⭐'.repeat(curLvl) + '☆'.repeat(Math.max(0, maxLvl - curLvl));
         return `
           <div class="album-item">
-            <div style="font-size:2.1rem;">${u.icon}</div>
+            <div style="font-size:2.0rem;">${u.icon}</div>
             <div style="flex:1;">
-              <div style="font-weight:800; font-size:0.9rem;">${u.name}</div>
-              <div style="font-size:0.74rem; color:#6d5c4d; line-height:1.25;">${u.desc}</div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:800; font-size:0.86rem;">${u.name}</span>
+                <span style="font-size:0.68rem; font-weight:900; color:#c85a32;">Niv. ${curLvl}/${maxLvl}</span>
+              </div>
+              <div style="font-size:0.68rem; letter-spacing:1px; margin:1px 0;">${stars}</div>
+              <div style="font-size:0.72rem; color:#6d5c4d; line-height:1.22;">${u.desc}</div>
             </div>
             <button class="btn-add-cup"
-              ${owned || !canAfford ? 'disabled style="opacity:0.5;"' : ''}
+              ${isMax || !canAfford ? 'disabled style="opacity:0.5;"' : ''}
               onclick="buyUpgrade('${u.id}')">
               ${btnLabel}
             </button>
@@ -3430,21 +3653,39 @@
 
     function buyUpgrade(upgradeId) {
       const upg = GAME_CONFIG.shopUpgrades.find(u => u.id === upgradeId);
-      if (!upg || (state.upgrades && state.upgrades[upgradeId])) return;
-      if (getFarmLevel() < (upg.minLevel || 1) || state.coins < upg.cost) {
+      if (!upg) return;
+      const curLvl = getUpgradeLevel(upgradeId);
+      const maxLvl = upg.maxLevel || 5;
+      if (curLvl >= maxLvl) return;
+      const cost = getUpgradeCost(upg);
+      if (getFarmLevel() < (upg.minLevel || 1) || state.coins < cost) {
         sfxError();
         return;
       }
       sfxSuccess();
-      state.coins -= upg.cost;
+      state.coins -= cost;
       if (!state.upgrades) state.upgrades = {};
-      state.upgrades[upgradeId] = true;
+      const nextLvl = curLvl + 1;
+      state.upgrades[upgradeId] = nextLvl;
 
-      if (upgradeId === 'lemonTree') {
+      if (upgradeId === 'sprinkler') {
+        sprinklerGroup.visible = true;
+        bounceObject(sprinklerGroup);
+        plotsData.forEach(p => {
+          if (p.unlocked) {
+            p.moisture = 1.0;
+            spawnWaterSplash3D(p.group.position.x, p.group.position.z);
+          }
+        });
+        spawnBurst3D(sprinklerGroup.position.x, 1.2, sprinklerGroup.position.z, [0x00b4d8, 0xf4b942, 0xffffff], 24, 1.2);
+      } else if (upgradeId === 'teaSalon') {
+        bounceObject(chaletGroup);
+        spawnBurst3D(-2.5, 3.2, -2.5, [0xf4b942, 0xe07a5f, 0xffffff], 26, 1.2);
+      } else if (upgradeId === 'lemonTree') {
         lemonTreeGroup.visible = true;
         specialStations.lemons.labelEl.style.display = 'block';
-        specialStations.lemons.readyAt = Date.now() + 4000;
-        storeItem('citron', 1);
+        specialStations.lemons.readyAt = Date.now() + 3000;
+        storeItem('citron', 2);
         bounceObject(lemonTreeGroup);
         spawnBurst3D(lemonTreeGroup.position.x, 2.0, lemonTreeGroup.position.z, [0xffea00, 0x38b000, 0xffffff], 24, 1.2);
       } else if (upgradeId === 'extraPlots') {
@@ -3467,16 +3708,16 @@
         spawnBurst3D(-10.0, 1.2, -7.2, [0xff6b35, 0x00b4d8, 0xffffff], 24, 1.2);
       } else if (upgradeId === 'royalHive') {
         royalHiveGroup.visible = true;
-        storeItem('miel', 1);
+        storeItem('miel', 2);
         bounceObject(royalHiveGroup);
         spawnBurst3D(royalHiveGroup.position.x, 1.6, royalHiveGroup.position.z, [0xf4b942, 0xffffff], 24, 1.2);
       }
 
-      addXP(15);
+      addXP(15 + nextLvl * 5);
       saveGame();
       renderDock();
       openShopModal();
-      spawnFloatingText(`✨ ${upg.name} construit (+15 XP) !`, window.innerWidth / 2 - 90, window.innerHeight / 3, '#52b788');
+      spawnFloatingText(`✨ ${upg.name} Niv.${nextLvl} (+${upg.passivePerLevel} 🪙/min) !`, window.innerWidth / 2 - 110, window.innerHeight / 3, '#52b788');
     }
 
     function renderDock() {
@@ -3554,7 +3795,7 @@
       if (sCup === sRec) {
         sfxSuccess();
         currentCup = [];
-        const coinReward = 14 + ((state.upgrades && state.upgrades.koiPond) ? 8 : 0);
+        const coinReward = calculateTeaPrice(animal.recipe, animal.id);
         state.coins += coinReward;
         state.hearts += 10;
         const prev = state.friendship[animal.id] || 0;
@@ -3658,12 +3899,40 @@
     }
 
     const clock = new THREE.Clock();
+    let passiveCoinAccum = 0;
 
     function animate() {
       requestAnimationFrame(animate);
       const dt = Math.min(0.1, clock.getDelta());
       const elapsed = clock.getElapsedTime();
       const now = Date.now();
+
+      // Revenu passif en temps réel (🪙/min) généré par le Salon de Thé et les aménagements du domaine
+      passiveCoinAccum += (getPassiveCoinsPerMin() / 60) * dt;
+      if (passiveCoinAccum >= 1) {
+        const wholeCoins = Math.floor(passiveCoinAccum);
+        passiveCoinAccum -= wholeCoins;
+        state.coins += wholeCoins;
+        const coinsEl = document.getElementById('ui-coins');
+        if (coinsEl) coinsEl.innerText = state.coins;
+      }
+
+      // Animation et arrosage automatique du Tourniquet d'Arrosage 3D
+      const spLvl = getUpgradeLevel('sprinkler');
+      if (spLvl >= 1) {
+        sprinklerGroup.visible = true;
+        sprinklerHead.rotation.y += dt * (4.0 + spLvl * 0.8);
+        autoSprinklerTimer -= dt;
+        if (autoSprinklerTimer <= 0) {
+          autoSprinklerTimer = 2.8;
+          plotsData.forEach(p => {
+            if (p.unlocked && p.moisture < 0.85) {
+              p.moisture = Math.min(1, p.moisture + 0.35);
+              spawnWaterSplash3D(p.group.position.x, p.group.position.z);
+            }
+          });
+        }
+      }
 
       // Progression du temps du monde & passage au jour suivant à minuit (0.75 du cycle)
       const prevCycle = ((state.worldTime || 0) / DAY_LENGTH) % 1;
@@ -3843,8 +4112,9 @@
           // Sous la pluie, le potager s'arrose tout seul progressivement !
           plot.moisture = Math.min(1, plot.moisture + dt * 0.14);
         } else {
-          // Le sol sèche avec le temps (et 2.2x plus vite en cas de canicule !)
-          const baseDry = (plot.state === 'growing') ? (1 / SOIL_DRY_TIME) : (1 / (SOIL_DRY_TIME * 1.6));
+          // Le sol sèche avec le temps (ralenti par le niveau d'irrigation !)
+          const dryTime = getSoilDryTime();
+          const baseDry = (plot.state === 'growing') ? (1 / dryTime) : (1 / (dryTime * 1.6));
           plot.moisture = Math.max(0, plot.moisture - dt * baseDry * (currentWeather.dryMult || 1));
         }
 
